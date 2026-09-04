@@ -18,12 +18,9 @@ struct TLButton: View {
 
     @Query var storedAccentColors: [MainSettings]
     var accentColor: Color {
-        if let firstColor = storedAccentColors.first{
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        }else{
-            return Color("default_color")
-        }
-   }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
+    }
     let title: String
     /// The colour the original (pre-neumorphic) design used. We now read it
     /// only to detect "destructive" / "cancel" intent — anything pink-ish or

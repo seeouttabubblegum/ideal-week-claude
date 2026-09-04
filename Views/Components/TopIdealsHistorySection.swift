@@ -160,14 +160,14 @@ struct TopIdealsHistorySection: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 20, height: 20)
-                    .foregroundColor(isSelected ? .white : LCColor.ink)
+                    .foregroundColor(isSelected ? LCColor.contrastingInk(on: LCColor.pink) : LCColor.ink)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 10)
                     .background(
                         Group {
                             if isSelected {
                                 RoundedRectangle(cornerRadius: LCRadius.chip, style: .continuous)
-                                    .fill(LCColor.pink)
+                                    .fill(LCColor.pinkFill)
                                     .shadow(color: LCColor.shadowDark, radius: 3.5, x: 3, y: 3)
                                     .shadow(color: LCColor.shadowLight, radius: 3.5, x: -3, y: -3)
                             } else {

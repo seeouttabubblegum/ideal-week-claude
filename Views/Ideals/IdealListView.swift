@@ -213,12 +213,9 @@ struct IdealListView: View {
     }
     
     var accentColor: Color {
-        if let firstSettings = storedTempSettings.first{
-            return Color(red: firstSettings.red, green: firstSettings.green, blue: firstSettings.blue, opacity: firstSettings.opacity)
-        }else{
-            return Color("default_color")
-        }
-   }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
+    }
     var start_day: String {
         if let firstSettings = storedTempSettings.first{
             return firstSettings.week_start_day
@@ -1536,8 +1533,10 @@ struct IdealListView: View {
                             .font(.manrope(20, .heavy))
                             .foregroundColor(LCColor.deepPink)
                         Image("Next Puzzle_Blue")
+                            .renderingMode(.template)
                             .resizable()
                             .scaledToFit()
+                            .foregroundColor(LCColor.blue)
                             .frame(width: 28, height: 28)
                     }
                     .frame(maxWidth: .infinity)

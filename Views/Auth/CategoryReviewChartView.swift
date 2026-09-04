@@ -550,7 +550,7 @@ struct CategoryReviewChartView: View {
                                                     .padding(.horizontal, 16)
                                                     .padding(.vertical, 9)
                                                     .neuRaised(cornerRadius: LCRadius.chip,
-                                                               fill: LCColor.pink,
+                                                               fill: LCColor.pinkFill,
                                                                cssOffset: LCNeumorphism.raisedOffsetSmall,
                                                                cssBlur: LCNeumorphism.raisedBlurSmall)
                                             } else {

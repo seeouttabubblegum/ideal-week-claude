@@ -15,8 +15,11 @@ import SwiftUI
 struct CategoryRadarChart: View {
     let axes: [RadarAxis]
 
-    static let completionColor = LCColor.pink // completion overlay (primary accent)
-    static let reviewColor = LCColor.blue     // review overlay (secondary accent)
+    // Computed, not `let`: a `static let` is initialised once per process and
+    // would freeze whichever palette was active the first time this chart was
+    // drawn. These are thin overlay outlines, so they take the ink tokens.
+    static var completionColor: Color { LCColor.pink } // completion overlay (primary accent)
+    static var reviewColor: Color { LCColor.blue }     // review overlay (secondary accent)
 
     @State private var selectedAxis: Int? = nil
 

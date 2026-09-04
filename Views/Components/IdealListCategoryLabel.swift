@@ -16,11 +16,8 @@ struct IdealListCategoryLabel: View {
     @Query var storedAccentColors: [MainSettings]
     private var firstColor: MainSettings? { storedAccentColors.first }
     var accentColor: Color {
-        if let c = firstColor {
-            return Color(red: c.red, green: c.green, blue: c.blue, opacity: c.opacity)
-        } else {
-            return Color("default_color")
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
     var textColor: Color {
         if let c = firstColor {
@@ -40,7 +37,7 @@ struct IdealListCategoryLabel: View {
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                .foregroundColor(.white)
+                .foregroundColor(LCColor.contrastingInk(on: LCColor.pink))
                 .frame(width: 38, height: 38)
                 .accessibilityHidden(true)
 
@@ -75,7 +72,7 @@ struct IdealListCategoryLabel: View {
         .padding(.horizontal, 22)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, minHeight: LCMetrics.rowHeight, alignment: .leading)
-        .background(LCColor.deepPink)
+        .background(LCColor.deepPinkFill)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
@@ -101,8 +98,17 @@ private struct BandPlusGlyph: Shape {
 /// CSS: `3px 3px 7px rgba(120,8,60,0.5), -3px -3px 6px rgba(255,120,190,0.55)`.
 /// Depresses (shadows collapse + slight scale) while pressed.
 private struct BandAddButtonStyle: ButtonStyle {
-    private let darkShadow = Color(hex: 0x78083C, opacity: 0.5)
-    private let lightShadow = Color(hex: 0xFF78BE, opacity: 0.55)
+    /// The handoff specifies the pair against the PINK band as
+    /// `rgba(120,8,60,0.5)` / `rgba(255,120,190,0.55)`. Those are the band
+    /// colour shifted by a fixed amount in HSB, so deriving them from whatever
+    /// colour the band currently is keeps the Present look identical and follows
+    /// the band when the palette rotates it.
+    private var darkShadow: Color {
+        LCColor.pink.shiftedHSB(saturation: +0.232, brightness: -0.396).opacity(0.5)
+    }
+    private var lightShadow: Color {
+        LCColor.pink.shiftedHSB(saturation: -0.172, brightness: +0.133).opacity(0.55)
+    }
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed

@@ -14,6 +14,17 @@
 
 import Foundation
 
+/// The order the three birthday wheels are laid out in, left to right.
+/// The 2026-08-31 review notes specify "three scrolling wheels (month, day,
+/// year)", so the order is declared here rather than being implicit in the
+/// view's layout — that way it is covered by a test and cannot drift.
+enum BirthdayWheel: CaseIterable, Hashable {
+    case month, day, year
+
+    /// Left-to-right order on screen.
+    static let displayOrder: [BirthdayWheel] = [.month, .day, .year]
+}
+
 enum DateWheelLogic {
 
     /// How many days the given month actually has, leap years included.

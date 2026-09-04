@@ -2,8 +2,9 @@
 //  DayMonthYearWheels.swift
 //  The Ideal Week
 //
-//  Three wheel pickers — day, month, year — used for the birthday field
-//  instead of the system calendar popover (client, 2026-09-02).
+//  Three wheel pickers — month, day, year — used for the birthday field
+//  instead of the system calendar popover (client, 2026-09-02; the order comes
+//  from the 2026-08-31 review notes and lives in `BirthdayWheel.displayOrder`).
 //
 //  The wheels are deliberately unconstrained while spinning: every day 1...31
 //  stays selectable whatever the month, because rows appearing and disappearing
@@ -36,32 +37,41 @@ struct DayMonthYearWheels: View {
     private var monthSymbols: [String] { calendar.shortMonthSymbols }
 
     var body: some View {
+        // Laid out from `BirthdayWheel.displayOrder`, which a test pins to the
+        // client's "(month, day, year)" spec.
         HStack(spacing: 0) {
-            wheel(selection: $day) {
-                ForEach(1...31, id: \.self) { d in
-                    Text("\(d)")
-                        .font(.manrope(19, .semibold))
-                        .foregroundColor(LCColor.ink)
-                        .tag(d)
-                }
-            }
-            wheel(selection: $month) {
-                ForEach(1...12, id: \.self) { m in
-                    Text(monthSymbols[m - 1])
-                        .font(.manrope(19, .semibold))
-                        .foregroundColor(LCColor.ink)
-                        .tag(m)
-                }
-            }
-            wheel(selection: $year) {
-                ForEach(years, id: \.self) { y in
-                    // Years that would make the user under the minimum age are
-                    // shown greyed rather than hidden, so the wheel visibly
-                    // "stops" for a reason. Landing on one snaps back.
-                    Text(String(y))
-                        .font(.manrope(19, .semibold))
-                        .foregroundColor(isEligible(y) ? LCColor.ink : LCColor.textMuted)
-                        .tag(y)
+            ForEach(BirthdayWheel.displayOrder, id: \.self) { column in
+                switch column {
+                case .month:
+                    wheel(selection: $month) {
+                        ForEach(1...12, id: \.self) { m in
+                            Text(monthSymbols[m - 1])
+                                .font(.manrope(19, .semibold))
+                                .foregroundColor(LCColor.ink)
+                                .tag(m)
+                        }
+                    }
+                case .day:
+                    wheel(selection: $day) {
+                        ForEach(1...31, id: \.self) { d in
+                            Text("\(d)")
+                                .font(.manrope(19, .semibold))
+                                .foregroundColor(LCColor.ink)
+                                .tag(d)
+                        }
+                    }
+                case .year:
+                    wheel(selection: $year) {
+                        ForEach(years, id: \.self) { y in
+                            // Years that would make the user under the minimum age
+                            // are shown greyed rather than hidden, so the wheel
+                            // visibly "stops" for a reason. Landing on one snaps back.
+                            Text(String(y))
+                                .font(.manrope(19, .semibold))
+                                .foregroundColor(isEligible(y) ? LCColor.ink : LCColor.textMuted)
+                                .tag(y)
+                        }
+                    }
                 }
             }
         }

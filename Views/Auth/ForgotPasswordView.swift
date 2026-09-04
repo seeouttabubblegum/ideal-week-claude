@@ -12,14 +12,14 @@
 
 import SwiftUI
 
-// MARK: - Pink-tuned cover neumorphics (file-local copy; see LoginView.swift)
+// MARK: - Cover neumorphics (5a/5b/2c — the shadows are tinted to the cover, not grey)
+//
+// The four values used to be frozen `static let`s holding the Present palette's
+// pink, copied into all three cover screens. They now come from LCAuthCover, so
+// the ground, its two shadows and its links rotate together. Present is byte for
+// byte what the handoff specified.
 
-private enum AuthCover {
-    static let background  = LCColor.deepPink          // #E5197F full-bleed
-    static let shadowDark  = Color(hex: 0xBC1066)      // pink dark shadow
-    static let shadowLight = Color(hex: 0xFF2694)      // pink light shadow
-    static let linkYellow  = Color(hex: 0xEDEF12)      // cover yellow links
-}
+private typealias AuthCover = LCAuthCover
 
 private extension View {
     /// Sunken (recessed) capsule field on the pink cover background.
@@ -41,7 +41,8 @@ private struct AuthCoverButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(font)
-            .foregroundColor(.white)
+            // This label sits on the BLUE capsule, not on the cover ground.
+            .foregroundColor(LCColor.legible(.white, onRole: .blue))
             .padding(.horizontal, 24)
             .padding(.vertical, 17)
             .frame(maxWidth: .infinity)
@@ -49,12 +50,12 @@ private struct AuthCoverButtonStyle: ButtonStyle {
                 Group {
                     if configuration.isPressed {
                         Capsule().fill(
-                            LCColor.blue
+                            LCColor.blueFill
                                 .shadow(.inner(color: AuthCover.shadowDark, radius: 4, x: 4, y: 4))
                                 .shadow(.inner(color: AuthCover.shadowLight, radius: 4, x: -4, y: -4))
                         )
                     } else {
-                        Capsule().fill(LCColor.blue)
+                        Capsule().fill(LCColor.blueFill)
                             .shadow(color: AuthCover.shadowDark, radius: 7, x: 6, y: 6)
                             .shadow(color: AuthCover.shadowLight, radius: 7, x: -6, y: -6)
                     }
@@ -75,7 +76,7 @@ private struct AuthBackButton: View {
                 .foregroundColor(LCColor.yellow)
                 .frame(width: 38, height: 38)
                 .background(
-                    Circle().fill(LCColor.blue)
+                    Circle().fill(LCColor.blueFill)
                         .shadow(color: AuthCover.shadowDark, radius: 5, x: 5, y: 5)
                         .shadow(color: AuthCover.shadowLight, radius: 5, x: -5, y: -5)
                 )
@@ -95,11 +96,11 @@ private struct AuthTextField: View {
             if text.isEmpty {
                 Text(placeholder)
                     .font(.manrope(16, .semibold))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(AuthCover.foreground.opacity(0.85))
             }
             TextField("", text: $text)
                 .font(.manrope(16, .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(AuthCover.foreground)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 18)
@@ -138,7 +139,7 @@ struct ForgotPasswordView: View {
 
                         Text("Enter your email address and we'll send you a link to reset your password.")
                             .font(.manrope(15, .medium))
-                            .foregroundColor(.white.opacity(0.9))
+                            .foregroundColor(AuthCover.foreground.opacity(0.9))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 12)
                     }
@@ -153,7 +154,7 @@ struct ForgotPasswordView: View {
                         if !viewModel.resetErrorMessage.isEmpty {
                             Text(viewModel.resetErrorMessage)
                                 .font(.manrope(14, .semibold))
-                                .foregroundColor(AuthCover.linkYellow)
+                                .foregroundColor(AuthCover.link)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, 12)
                         }
@@ -162,13 +163,13 @@ struct ForgotPasswordView: View {
                             VStack(alignment: .leading, spacing: 8) {
                                 Text(viewModel.resetSuccessMessage)
                                     .font(.manrope(14, .semibold))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(AuthCover.foreground)
                                     .fixedSize(horizontal: false, vertical: true)
                                     .multilineTextAlignment(.leading)
 
                                 Text("If you don't see the email, please check your spam or junk folder.")
                                     .font(.manrope(12, .medium))
-                                    .foregroundColor(.white.opacity(0.75))
+                                    .foregroundColor(AuthCover.foreground.opacity(0.75))
                                     .fixedSize(horizontal: false, vertical: true)
                                     .multilineTextAlignment(.leading)
                             }
@@ -202,14 +203,14 @@ struct ForgotPasswordView: View {
                     VStack(spacing: 4) {
                         Text("Remembered It?")
                             .font(.manrope(16, .medium))
-                            .foregroundColor(.white.opacity(0.85))
+                            .foregroundColor(AuthCover.foreground.opacity(0.85))
                         Button {
                             HapticFeedback.impact()
                             dismiss()
                         } label: {
                             Text("Back To Login")
                                 .font(.manrope(16, .bold))
-                                .foregroundColor(AuthCover.linkYellow)
+                                .foregroundColor(AuthCover.link)
                         }
                         .buttonStyle(.plain)
                     }
@@ -220,7 +221,7 @@ struct ForgotPasswordView: View {
             }
         }
         .background(AuthCover.background.ignoresSafeArea())
-        .tint(AuthCover.linkYellow)
+        .tint(AuthCover.link)
         .onAppear {
             // Clear messages when view appears
             viewModel.resetErrorMessage = ""

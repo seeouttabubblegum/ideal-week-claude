@@ -20,11 +20,8 @@ struct SubscriptionView: View {
     @State private var errorMessage = ""
 
     var accentColor: Color {
-        if let firstColor = storedAccentColors.first {
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        } else {
-            return Color("default_color")
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
 
     var body: some View {
@@ -84,7 +81,7 @@ struct SubscriptionView: View {
                     }
                     .frame(maxWidth: .infinity)
                     .padding(18)
-                    .neuRaised(cornerRadius: 20, fill: LCColor.pink, cssOffset: 6, cssBlur: 16)
+                    .neuRaised(cornerRadius: 20, fill: LCColor.pinkFill, cssOffset: 6, cssBlur: 16)
                     .padding(.horizontal, 28)
                     .padding(.top, 22)
 
@@ -294,7 +291,7 @@ struct SubscriptionOptionCard: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(RoundedRectangle(cornerRadius: 7).fill(LCColor.blue))
+                                .background(RoundedRectangle(cornerRadius: 7).fill(LCColor.blueFill))
                         }
                     }
 
@@ -333,7 +330,7 @@ struct SubscriptionOptionCard: View {
                 ZStack {
                     if isSelected {
                         Circle()
-                            .fill(LCColor.blue)
+                            .fill(LCColor.blueFill)
                             .shadow(color: LCColor.shadowDark, radius: 3, x: 3, y: 3)
                             .shadow(color: LCColor.shadowLight, radius: 3, x: -3, y: -3)
                         Image(systemName: "checkmark")

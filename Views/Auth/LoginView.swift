@@ -13,14 +13,14 @@
 import SwiftUI
 import LocalAuthentication
 
-// MARK: - Pink-tuned cover neumorphics (5a/5b/2c only — shadows are pink, not grey)
+// MARK: - Cover neumorphics (5a/5b/2c — the shadows are tinted to the cover, not grey)
+//
+// The four values used to be frozen `static let`s holding the Present palette's
+// pink, copied into all three cover screens. They now come from LCAuthCover, so
+// the ground, its two shadows and its links rotate together. Present is byte for
+// byte what the handoff specified.
 
-private enum AuthCover {
-    static let background  = LCColor.deepPink          // #E5197F full-bleed
-    static let shadowDark  = Color(hex: 0xBC1066)      // pink dark shadow
-    static let shadowLight = Color(hex: 0xFF2694)      // pink light shadow
-    static let linkYellow  = Color(hex: 0xEDEF12)      // cover yellow links
-}
+private typealias AuthCover = LCAuthCover
 
 /// Sunken (recessed) capsule field on the pink cover background.
 /// CSS: inset 5px 5px 11px #bc1066, inset -5px -5px 11px #ff2694.
@@ -44,7 +44,8 @@ private struct AuthCoverButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(font)
-            .foregroundColor(.white)
+            // This label sits on the BLUE capsule, not on the cover ground.
+            .foregroundColor(LCColor.legible(.white, onRole: .blue))
             .padding(.horizontal, 24)
             .padding(.vertical, 17)
             .frame(maxWidth: .infinity)
@@ -52,12 +53,12 @@ private struct AuthCoverButtonStyle: ButtonStyle {
                 Group {
                     if configuration.isPressed {
                         Capsule().fill(
-                            LCColor.blue
+                            LCColor.blueFill
                                 .shadow(.inner(color: AuthCover.shadowDark, radius: 4, x: 4, y: 4))
                                 .shadow(.inner(color: AuthCover.shadowLight, radius: 4, x: -4, y: -4))
                         )
                     } else {
-                        Capsule().fill(LCColor.blue)
+                        Capsule().fill(LCColor.blueFill)
                             .shadow(color: AuthCover.shadowDark, radius: 7, x: 6, y: 6)
                             .shadow(color: AuthCover.shadowLight, radius: 7, x: -6, y: -6)
                     }
@@ -77,11 +78,11 @@ private struct AuthTextField: View {
             if text.isEmpty {
                 Text(placeholder)
                     .font(.manrope(16, .semibold))
-                    .foregroundColor(.white.opacity(0.85))
+                    .foregroundColor(AuthCover.foreground.opacity(0.85))
             }
             TextField("", text: $text)
                 .font(.manrope(16, .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(AuthCover.foreground)
         }
         .padding(.horizontal, 24)
         .padding(.vertical, 18)
@@ -101,7 +102,7 @@ private struct AuthSecureField: View {
                 if text.isEmpty {
                     Text(placeholder)
                         .font(.manrope(16, .semibold))
-                        .foregroundColor(.white.opacity(0.85))
+                        .foregroundColor(AuthCover.foreground.opacity(0.85))
                 }
                 Group {
                     if isRevealed {
@@ -111,7 +112,7 @@ private struct AuthSecureField: View {
                     }
                 }
                 .font(.manrope(16, .semibold))
-                .foregroundColor(.white)
+                .foregroundColor(AuthCover.foreground)
                 .autocapitalization(.none)
             }
             Button {
@@ -119,7 +120,7 @@ private struct AuthSecureField: View {
             } label: {
                 Image(systemName: isRevealed ? "eye.slash" : "eye")
                     .font(.system(size: 15, weight: .medium))
-                    .foregroundColor(.white.opacity(0.78))
+                    .foregroundColor(AuthCover.foreground.opacity(0.78))
             }
             .buttonStyle(.plain)
             .accessibilityLabel(isRevealed ? "Hide password" : "Show password")
@@ -148,7 +149,7 @@ struct LoginView: View {
                         if !viewModel.isConnected {
                             Text("You are currently offline. Please check your internet connection.")
                                 .font(.manrope(14, .semibold))
-                                .foregroundColor(AuthCover.linkYellow)
+                                .foregroundColor(AuthCover.link)
                                 .multilineTextAlignment(.center)
                                 .padding(.top, 14)
                         }
@@ -169,7 +170,7 @@ struct LoginView: View {
                             }) {
                                 Text("Forgot Password?")
                                     .font(.manrope(14, .semibold))
-                                    .foregroundColor(AuthCover.linkYellow)
+                                    .foregroundColor(AuthCover.link)
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }
                             .buttonStyle(.plain)
@@ -177,7 +178,7 @@ struct LoginView: View {
                             VStack(spacing: 16) {
                                 if viewModel.isLoggingIn {
                                     ProgressView()
-                                        .tint(.white)
+                                        .tint(AuthCover.foreground)
                                         .frame(maxWidth: .infinity)
                                         .padding(.vertical, 17)
                                 } else {
@@ -236,11 +237,11 @@ struct LoginView: View {
                         VStack(spacing: 4) {
                             Text("New Around Here?")
                                 .font(.manrope(16, .medium))
-                                .foregroundColor(.white.opacity(0.85))
+                                .foregroundColor(AuthCover.foreground.opacity(0.85))
                             NavigationLink(destination: RegisterView()) {
                                 Text("Create An Account")
                                     .font(.manrope(16, .bold))
-                                    .foregroundColor(AuthCover.linkYellow)
+                                    .foregroundColor(AuthCover.link)
                             }
                             .disabled(!viewModel.isConnected)
                             .simultaneousGesture(TapGesture().onEnded {
@@ -255,7 +256,7 @@ struct LoginView: View {
             }
             .background(AuthCover.background.ignoresSafeArea())
         }
-        .tint(AuthCover.linkYellow)
+        .tint(AuthCover.link)
         .alert("Biometric Login", isPresented: $showBiometricAlert) {
             Button("OK") {
                 showBiometricAlert = false

@@ -109,8 +109,14 @@ class ReviewViewViewModel: ObservableObject {
             AppLogger.error(AppLogger.firestore, "Error saving review score: \(error.localizedDescription)")
         }
 
-        // Contribute anonymised title + score to the community top-ideals collection.
-        CommunityIdealService.shared.upsert(title: item.title, category: item.category, score: scoreValue)
+        // Contribute anonymised title + score to the community top-ideals
+        // collection — but only while the feature is switched on. With Community
+        // Ideals hidden there is nothing in the app that reads this collection,
+        // so writing to it would ship users' ideal titles off-device for no
+        // reason. Gated on the same flag that hides the UI.
+        if AppStoreConfig.isCommunityIdealsEnabled {
+            CommunityIdealService.shared.upsert(title: item.title, category: item.category, score: scoreValue)
+        }
 
         // Backward-compat: update `Ideal.reviewScore` with the average across
         // all the ideal's review scores. We include the just-written `scoreValue`

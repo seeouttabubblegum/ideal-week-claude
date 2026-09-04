@@ -17,6 +17,10 @@ private let onboardingTimeFormatter: DateFormatter = {
 
 struct OnboardingSettingsView: View {
     @Environment(\.modelContext) private var modelContext
+    // The free-form ColorPicker these two fed is gone — colour is chosen from
+    // the four LCPalette schemes in Settings now. They are still loaded from and
+    // written back to the MainSettings record unchanged, so the stored shape and
+    // the save path are untouched.
     @State private var storedSettings: Color = .pink
     @State private var textColor: Color = .black
     @State private var weekStartDay: String = WeekdayUtility.defaultWeekStartDay
@@ -27,18 +31,12 @@ struct OnboardingSettingsView: View {
     @State private var dailyNotifications: Bool = false
     @State private var weeklyNotifications: Bool = false
 
-    @State private var showColorPicker = false
-    @State private var tempColor: Color = .pink
-    @State private var tempTextColor: Color = .black
 
     @Query var storedSettingss: [MainSettings]
 
     var accentColor: Color {
-        var stored_format_color = Color("default_color")
-        if let firstColor = storedSettingss.first {
-            stored_format_color = Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        }
-        return stored_format_color
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
 
     var onSave: (() -> Void)?
@@ -94,28 +92,6 @@ struct OnboardingSettingsView: View {
                         .accessibilityLabel("First Day of Week")
                         .accessibilityValue(weekStartDay)
 
-                        NeuFeatheredDivider()
-
-                        Button(action: {
-                            tempColor = storedSettings
-                            tempTextColor = textColor
-                            showColorPicker = true
-                        }) {
-                            HStack {
-                                Text("Primary Colors")
-                                    .font(.manrope(16, .heavy))
-                                    .foregroundColor(LCColor.ink)
-                                Spacer()
-                                // Raised colour swatch (30pt, small-control shadow)
-                                Color.clear
-                                    .frame(width: 30, height: 30)
-                                    .neuRaised(Circle(), fill: storedSettings, cssOffset: 3, cssBlur: 7)
-                            }
-                            .padding(.horizontal, 18)
-                            .neuGroupedRow()
-                            .contentShape(Rectangle())
-                        }
-                        .buttonStyle(.plain)
 
                         NeuFeatheredDivider()
 
@@ -223,49 +199,11 @@ struct OnboardingSettingsView: View {
                 }
             }
             .background(LCColor.surface.ignoresSafeArea())
-            .sheet(isPresented: $showColorPicker) {
-                NavigationStack {
-                    VStack(spacing: 20) {
-                        ColorPicker(selection: $tempColor, supportsOpacity: false) {
-                            Text("Theme Color")
-                                .font(.manrope(16, .heavy))
-                                .foregroundColor(LCColor.ink)
-                        }
-                        .padding()
-
-                        ColorPicker(selection: $tempTextColor, supportsOpacity: false) {
-                            Text("Text Color")
-                                .font(.manrope(16, .heavy))
-                                .foregroundColor(LCColor.ink)
-                        }
-                        .padding()
-
-                        Spacer()
-                    }
-                    .background(LCColor.surface.ignoresSafeArea())
-                    .navigationTitle("Select Colors")
-                    .navigationBarTitleDisplayMode(.inline)
-                    .toolbar {
-                        ToolbarItem(placement: .navigationBarTrailing) {
-                            Button("Done") {
-                                storedSettings = tempColor
-                                textColor = tempTextColor
-                                showColorPicker = false
-                            }
-                            .font(.manrope(16, .bold))
-                            .foregroundColor(LCColor.pink)
-                        }
-                    }
-                }
-                .presentationDetents([.medium])
-            }
             .onAppear {
                 // Load existing settings if any
                 if let firstSettings = storedSettingss.first {
                     storedSettings = Color(red: firstSettings.red, green: firstSettings.green, blue: firstSettings.blue, opacity: firstSettings.opacity)
-                    tempColor = storedSettings
                     textColor = Color(red: firstSettings.textColorRed, green: firstSettings.textColorGreen, blue: firstSettings.textColorBlue, opacity: firstSettings.textColorOpacity)
-                    tempTextColor = textColor
                     weekStartDay = firstSettings.week_start_day
                     skipReviews = firstSettings.skip_reviews
 
@@ -278,9 +216,7 @@ struct OnboardingSettingsView: View {
                 } else {
                     // If no settings exist, use pink as default
                     storedSettings = .pink
-                    tempColor = .pink
                     textColor = .black
-                    tempTextColor = .black
                 }
             }
         }

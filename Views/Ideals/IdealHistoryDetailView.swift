@@ -20,11 +20,8 @@ struct IdealHistoryDetailView: View {
 
     @Query var storedTempSettings: [MainSettings]
     var accentColor: Color {
-        if let firstSettings = storedTempSettings.first {
-            return Color(red: firstSettings.red, green: firstSettings.green, blue: firstSettings.blue, opacity: firstSettings.opacity)
-        } else {
-            return Color("default_color")
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
     var textColor: Color {
         if let firstSettings = storedTempSettings.first {

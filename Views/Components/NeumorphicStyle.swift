@@ -262,10 +262,23 @@ struct NeumorphicButtonStyle: ButtonStyle {
     var font: Font = .manrope(16, .heavy)
     var fullWidth: Bool = true
 
+    /// The label colour, guarded against its own fill. `tint` is an accent chosen
+    /// for the Present palette (deep pink on the yellow CTA, say); once the
+    /// palette rotates, that same pairing can collapse to no contrast at all. If
+    /// the requested tint cannot clear WCAG's 3:1 large-text minimum on this
+    /// button's fill, fall back to whichever of white / ink can. Every Present
+    /// pairing already clears it, so the default look is untouched.
+    private var readableTint: Color {
+        let requested = tint ?? LCColor.ink
+        return LCColor.contrast(requested, fill) >= 3
+            ? requested
+            : LCColor.contrastingInk(on: fill)
+    }
+
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(font)
-            .foregroundColor(tint ?? LCColor.ink)
+            .foregroundColor(readableTint)
             .padding(.horizontal, horizontalPadding)
             .padding(.vertical, verticalPadding)
             .frame(maxWidth: fullWidth ? .infinity : nil)
@@ -353,7 +366,7 @@ struct NeuCheckSaveButton: View {
                     .font(.manrope(12, .heavy))
                     .foregroundColor(LCColor.pink)
                     .frame(width: 22, height: 22)
-                    .background(Circle().fill(LCColor.blue))
+                    .background(Circle().fill(LCColor.blueFill))
                     .offset(x: 7, y: -7)
             }
         }
@@ -447,7 +460,7 @@ struct NeuToggleStyle: ToggleStyle {
             Spacer(minLength: 8)
             ZStack(alignment: configuration.isOn ? .trailing : .leading) {
                 if configuration.isOn {
-                    Capsule().fill(LCColor.pink)
+                    Capsule().fill(LCColor.pinkFill)
                         .shadow(color: LCColor.shadowDark, radius: 2, x: 2, y: 2)
                         .shadow(color: LCColor.shadowLight, radius: 2, x: -2, y: -2)
                 } else {

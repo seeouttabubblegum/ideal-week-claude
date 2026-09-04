@@ -32,7 +32,7 @@ struct CategoryWellPicker: View {
         let isSelected = selection == option
         let label = Text(option)
             .font(.manrope(textSize, .heavy))
-            .foregroundColor(isSelected ? .white : LCColor.textSecondary)
+            .foregroundColor(isSelected ? LCColor.contrastingInk(on: LCColor.pink) : LCColor.textSecondary)
             .padding(.vertical, 10)
             .padding(.horizontal, 16)
 
@@ -43,7 +43,7 @@ struct CategoryWellPicker: View {
             Group {
                 if isSelected {
                     label.neuRaised(cornerRadius: LCRadius.chip,
-                                    fill: LCColor.pink,
+                                    fill: LCColor.pinkFill,
                                     cssOffset: LCNeumorphism.raisedOffsetSmall,
                                     cssBlur: LCNeumorphism.raisedBlurSmall)
                 } else {

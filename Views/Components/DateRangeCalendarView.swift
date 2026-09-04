@@ -79,10 +79,10 @@ struct DateRangeCalendarView: View {
                 if selected {
                     Text(label)
                         .font(.manrope(15, .bold))
-                        .foregroundColor(.white)
+                        .foregroundColor(LCColor.contrastingInk(on: LCColor.pink))
                         .padding(.horizontal, 14).padding(.vertical, 9)
                         .neuRaised(cornerRadius: LCRadius.chip,
-                                   fill: LCColor.pink,
+                                   fill: LCColor.pinkFill,
                                    cssOffset: LCNeumorphism.raisedOffsetSmall,
                                    cssBlur: LCNeumorphism.raisedBlurSmall)
                 } else {
@@ -179,13 +179,13 @@ struct DateRangeCalendarView: View {
                     Group {
                         if state.endpoint {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(LCColor.pink)
+                                .fill(LCColor.pinkFill)
                                 .shadow(color: LCColor.shadowDark, radius: 3.5, x: 3, y: 3)
                                 .shadow(color: LCColor.shadowLight, radius: 3.5, x: -3, y: -3)
                         } else {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .fill(
-                                    (state.selected ? LCColor.pink.opacity(0.18) : LCColor.surface)
+                                    (state.selected ? LCColor.pinkFill.opacity(0.18) : LCColor.surface)
                                         .shadow(.inner(color: LCColor.shadowDark, radius: 2.5, x: 2.5, y: 2.5))
                                         .shadow(.inner(color: LCColor.shadowLight, radius: 2.5, x: -2.5, y: -2.5))
                                 )

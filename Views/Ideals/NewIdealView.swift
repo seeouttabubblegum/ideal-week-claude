@@ -17,11 +17,8 @@ struct NewIdealView: View {
 
 
     var accentColor: Color {
-        if let firstColor = storedAccentColors.first {
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        } else {
-            return Color("default_color")
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
 
     init(newItemPresented: Binding<Bool>, category:Category? = nil, wishlist: Bool = false, editingItem: Ideal? = nil){

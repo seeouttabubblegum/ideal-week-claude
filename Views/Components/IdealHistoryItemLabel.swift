@@ -46,10 +46,10 @@ struct IdealHistoryItemLabel: View {
             // badge colour read as a category/state signal it never was.
             Text("\(pct)%")
                 .font(.manrope(13, .heavy))
-                .foregroundColor(.white)
+                .foregroundColor(LCColor.contrastingInk(on: LCColor.pink))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Capsule().fill(LCColor.pink))
+                .background(Capsule().fill(LCColor.pinkFill))
                 .padding(8)
         }
     }

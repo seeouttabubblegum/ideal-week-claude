@@ -53,8 +53,8 @@ struct SettingsView: View {
     @State private var navigateToIdealList: String? = nil
     @State private var currentUserId: String = ""
     @State private var showColorPicker = false
-    @State private var tempColor: Color = .pink
-    @State private var tempTextColor: Color = .black
+    @State private var tempPalette: LCPalette = ThemeManager.shared.palette
+    @ObservedObject private var theme = ThemeManager.shared
     @ObservedObject private var dateProvider = DateProviderService.shared
     @State private var resetWeeklyPromptsOnDateChange: Bool = true
     @State private var testModeEnabled: Bool = true
@@ -65,12 +65,9 @@ struct SettingsView: View {
     private let accentDefault: Color = .pink
     @Query var storedSettingss: [MainSettings]
     var accentColor: Color {
-        var stored_format_color = Color("default_color")
-        if let firstColor = storedSettingss.first{
-            stored_format_color = Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        }
-        return stored_format_color
-   }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
+    }
     
     init(accentDefault: Color, start_day: String, skip_reviews: Bool) {
         _storedSettings = State(initialValue: accentDefault)
@@ -257,6 +254,9 @@ struct SettingsView: View {
             MenuDrawer(showDrawer: $showDrawer, activeView: "settings")
         }
         .zIndex(9999)
+        // Paint the staged palette now that Settings is going away. Doing it
+        // any earlier rebuilds the tree this screen is standing in.
+        .onDisappear { theme.commitStaged() }
     }
 
     // MARK: - Neumorphic section builders (7b Settings handoff)
@@ -341,18 +341,27 @@ struct SettingsView: View {
 
             NeuFeatheredDivider()
 
+            // Colour Theme — the four schemes from the 2026-08-31 review notes.
             Button(action: {
-                tempColor = storedSettings
-                tempTextColor = textColor
+                tempPalette = theme.stagedPalette
                 showColorPicker = true
             }) {
                 HStack {
-                    rowLabel("Primary Colors")
+                    rowLabel("Colour Theme")
                     Spacer()
-                    // Raised colour swatch (30pt, small-control shadow)
-                    Color.clear
-                        .frame(width: 30, height: 30)
-                        .neuRaised(Circle(), fill: storedSettings, cssOffset: 3, cssBlur: 7)
+                    Text(theme.stagedPalette.displayName)
+                        .font(.manrope(16, .semibold))
+                        .foregroundColor(LCColor.pink)
+                    HStack(spacing: -8) {
+                        ForEach(Array(LCHue.allCases.enumerated()), id: \.offset) { index, role in
+                            Circle()
+                                .fill(theme.stagedPalette.resolved(role, variant: .base))
+                                .frame(width: 22, height: 22)
+                                .overlay(Circle().stroke(LCColor.surface, lineWidth: 2))
+                                .zIndex(Double(LCHue.allCases.count - index))
+                        }
+                    }
+                    .padding(.leading, 8)
                 }
                 .padding(.horizontal, 18)
                 .neuGroupedRow()
@@ -361,31 +370,27 @@ struct SettingsView: View {
             .buttonStyle(.plain)
             .sheet(isPresented: $showColorPicker) {
                 NavigationStack {
-                    VStack(spacing: 20) {
-                        NeuSheetHeader(title: "Select Colors") {
+                    VStack(spacing: 18) {
+                        NeuSheetHeader(title: "Colour Theme") {
                             showColorPicker = false
                         } onSave: {
-                            storedSettings = tempColor
-                            textColor = tempTextColor
+                            // Staged, not applied: switching palette rebuilds
+                            // the whole signed-in tree, which would eject the
+                            // user from Settings. Applied on the way out.
+                            theme.stage(tempPalette)
                             showColorPicker = false
                         }
-                        LCPaletteSwatchRow(title: "Theme Color",
-                                           selection: $tempColor,
-                                           options: LCPaletteSwatchRow.themeOptions)
-                            .padding(.horizontal, LCMetrics.screenMargin)
-                            .padding(.top, 6)
-
-                        LCPaletteSwatchRow(title: "Text Color",
-                                           selection: $tempTextColor,
-                                           options: LCPaletteSwatchRow.textOptions)
-                            .padding(.horizontal, LCMetrics.screenMargin)
-
-                        Spacer()
+                        ScrollView {
+                            PaletteChooser(selection: $tempPalette)
+                                .padding(.horizontal, LCMetrics.screenMargin)
+                                .padding(.top, 4)
+                                .padding(.bottom, 24)
+                        }
                     }
                     .background(LCColor.surface.ignoresSafeArea())
                     .toolbar(.hidden, for: .navigationBar)
                 }
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
             }
         }
         .padding(.horizontal, LCMetrics.screenMargin)
@@ -655,6 +660,8 @@ struct SettingsView: View {
             // PIN is already saved when user sets it in the sheet
             // Sync with UserDefaults
             UserDefaults.standard.set(biometricLogin, forKey: "biometric_login_enabled")
+
+            tempPalette = theme.stagedPalette
             if !biometricLogin {
                 clearStoredCredentials()
             }
@@ -900,9 +907,7 @@ struct SettingsView: View {
         // Load existing settings
         if let firstSettings = storedSettingss.first {
             storedSettings = Color(red: firstSettings.red, green: firstSettings.green, blue: firstSettings.blue, opacity: firstSettings.opacity)
-            tempColor = storedSettings
             textColor = Color(red: firstSettings.textColorRed, green: firstSettings.textColorGreen, blue: firstSettings.textColorBlue, opacity: firstSettings.textColorOpacity)
-            tempTextColor = textColor
             weekStartDay = firstSettings.week_start_day
             skipReviews = firstSettings.skip_reviews
             
@@ -926,9 +931,7 @@ struct SettingsView: View {
         } else {
             // If no settings exist, use pink as default
             storedSettings = .pink
-            tempColor = .pink
             textColor = .black
-            tempTextColor = .black
         }
     }
     

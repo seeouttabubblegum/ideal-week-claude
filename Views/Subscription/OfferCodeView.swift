@@ -22,11 +22,8 @@ struct OfferCodeView: View {
     private var stepTextColor: Color { Color(hex: 0x4A4A52) }
 
     var accentColor: Color {
-        if let firstColor = storedAccentColors.first {
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        } else {
-            return Color("default_color")
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
 
     var body: some View {

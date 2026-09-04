@@ -48,11 +48,8 @@ struct ProfileView: View {
     }
     
     var accentColor: Color {
-        if let firstColor = storedSettings.first {
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        } else {
-            return Color("default_color")
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
     
     var textColor: Color {

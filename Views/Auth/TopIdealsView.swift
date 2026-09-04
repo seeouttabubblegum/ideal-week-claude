@@ -375,7 +375,7 @@ struct TopIdealsView: View {
                     .font(.system(size: 16))
                     .foregroundColor(isSaved ? .white : LCColor.pink)
             }
-            .buttonStyle(NeuCircleButtonStyle(fill: isSaved ? LCColor.pink : LCColor.surface, diameter: 34))
+            .buttonStyle(NeuCircleButtonStyle(fill: isSaved ? LCColor.pinkFill : LCColor.surface, diameter: 34))
             .disabled(isSaved)
             .accessibilityLabel(isSaved ? "\(item.title) added to this week" : "Add \(item.title) to this week")
         }
@@ -619,12 +619,12 @@ struct AddToCurrentWeekSheet: View {
 
                     // Pink progress fill up to the knob
                     Capsule()
-                        .fill(LCColor.pink)
+                        .fill(LCColor.pinkFill)
                         .frame(width: max(0, geometry.size.width * fraction), height: 12)
 
                     // Raised knob with pink core
                     Circle()
-                        .fill(LCColor.pink)
+                        .fill(LCColor.pinkFill)
                         .frame(width: 12, height: 12)
                         .frame(width: 34, height: 34)
                         .neuRaised(Circle(), cssOffset: 4, cssBlur: 9)

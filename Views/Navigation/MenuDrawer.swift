@@ -28,11 +28,8 @@ struct MenuDrawer: View {
     let activeView:String
     @Query var storedSettings: [MainSettings]
     var accentColor: Color {
-        if let firstColor = storedSettings.first{
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        }else{
-            return LCColor.pink
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
     var week_start_day: String {
         if let firstSettings = storedSettings.first{

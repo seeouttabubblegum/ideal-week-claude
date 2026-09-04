@@ -11,6 +11,10 @@ import FirebaseAuth
 
 struct MenuView: View {
     @StateObject var viewModel = MainViewViewModel()
+    /// LCColor's accents are statics, so switching palette has to rebuild the
+    /// tree for the new colours to be read. Keying the signed-in content on the
+    /// palette does exactly that, and leaves the auth view model alone.
+    @ObservedObject private var theme = ThemeManager.shared
     @State private var showHelpOnFirstLaunch = false
     @State private var showOnboardingSettings = false
     @State private var hasCheckedFirstLaunch = false
@@ -18,6 +22,7 @@ struct MenuView: View {
     var body: some View {
         if viewModel.isSignedIn, !viewModel.currentUserId.isEmpty {
             accountView
+                .id(theme.palette)
                 // Shared neumorphic canvas behind the hosted list (never white).
                 .background(LCColor.surface.ignoresSafeArea())
                 .onAppear {
@@ -41,6 +46,13 @@ struct MenuView: View {
                 }
         }else{
             LoginView()
+                // Keyed for the same reason the signed-in tree is: LCColor's
+                // accents are statics SwiftUI cannot observe, so a subview whose
+                // inputs have not changed keeps whatever colours it first read.
+                // Logging out right after a palette change used to leave the
+                // cover half repainted — a Present pink ground wearing the old
+                // palette's capsules.
+                .id(theme.palette)
                 .onAppear {
                     hasCheckedFirstLaunch = false
                 }

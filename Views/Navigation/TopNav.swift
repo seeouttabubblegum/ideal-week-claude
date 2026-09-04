@@ -41,12 +41,9 @@ private struct NeuNextPillButtonStyle: ButtonStyle {
 struct TopNav: View {
     @Query var storedAccentColors: [MainSettings]
     var accentColor: Color {
-        if let firstColor = storedAccentColors.first{
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        }else{
-            return LCColor.pink
-        }
-   }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
+    }
     let pageTitle: String
     let isIdealList: Bool
     @Binding var showDrawer: Bool
@@ -141,7 +138,9 @@ struct TopNav: View {
                                 .lineLimit(1)
                                 .fixedSize()
                             Image("Next Puzzle_Blue")
+                                .renderingMode(.template)
                                 .resizable().scaledToFit()
+                                .foregroundColor(LCColor.blue)
                                 .frame(width: 20, height: 20)
                         }
                         .fixedSize()
@@ -277,8 +276,10 @@ struct TopNav: View {
             showDrawer = true
         } label: {
             Image(usesBlueDrawerGlyph ? "Solid Settings_Blue" : "Solid Settings_Pink")
+                .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
+                .foregroundColor(usesBlueDrawerGlyph ? LCColor.blue : LCColor.pink)
                 .frame(width: usesBlueDrawerGlyph ? 30 : 24,
                        height: usesBlueDrawerGlyph ? 30 : 24)
         }

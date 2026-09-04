@@ -55,17 +55,13 @@ struct EditProfileView: View {
     @State private var cachedCountry: String = "United States"
     @State private var cachedState: String = ""
     @State private var showCountrySelection = false
-    @State private var showStateSelection = false
     @State private var showFeetSelection = false
     @State private var showInchesSelection = false
     @State private var isInitialized = false
     
     var accentColor: Color {
-        if let firstColor = storedAccentColors.first {
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        } else {
-            return Color("default_color")
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
     
     init(viewModel: ProfileViewViewModel, isPresented: Binding<Bool>) {
@@ -190,23 +186,12 @@ struct EditProfileView: View {
                     }
                     .id("personal-info-section")
 
-                    sectionHeader("Address Information")
+                    // Only country and postal/zip are collected (review notes,
+                    // 2026-08-31). Country also decides imperial vs metric below.
+                    sectionHeader("Location")
                     VStack(spacing: 0) {
-                        textFieldRow(label: "Address", text: $address)
-                        rowDivider
-                        textFieldRow(label: "City", text: $city)
-                        rowDivider
-                        // Use buttons with sheets - use only direct @State access, no computed properties
                         selectorRow(label: "Country", value: cachedCountry) {
                             showCountrySelection = true
-                        }
-
-                        // Only show state field if country is United States
-                        if cachedCountry == "United States" {
-                            rowDivider
-                            selectorRow(label: "State", value: cachedState) {
-                                showStateSelection = true
-                            }
                         }
 
                         rowDivider
@@ -327,16 +312,6 @@ struct EditProfileView: View {
         .sheet(isPresented: $showCountrySelection) {
             NavigationStack {
                 CountrySelectionView(selectedCountry: $country, selectedState: $state)
-            }
-            .onDisappear {
-                // Update cached values when sheet dismisses
-                validatePickerValues()
-                updateCachedValues()
-            }
-        }
-        .sheet(isPresented: $showStateSelection) {
-            NavigationStack {
-                StateSelectionView(selectedState: $state)
             }
             .onDisappear {
                 // Update cached values when sheet dismisses

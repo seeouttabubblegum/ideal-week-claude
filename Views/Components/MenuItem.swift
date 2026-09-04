@@ -70,8 +70,8 @@ struct MenuItem: View {
 #Preview {
     VStack(spacing: 0) {
         MenuItem(imageName: "", text: "My Ideals", showsChecklist: true)
-            .background(LCColor.pink)
+            .background(LCColor.pinkFill)
         MenuItem(imageName: "clock", text: "Progress", showsProgressRings: true)
-            .background(LCColor.pink.lighter(0.1))
+            .background(LCColor.pinkFill.lighter(0.1))
     }
 }

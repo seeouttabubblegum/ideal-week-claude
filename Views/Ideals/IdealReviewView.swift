@@ -154,9 +154,12 @@ struct IdealReviewView: View {
 enum MoodGradientPalette {
     // Exact brand anchors (handoff palette): 7 = CTA yellow, mid = deep pink,
     // 1 = brand blue.
-    static let yellow = LCColor.yellow
-    static let pink   = LCColor.deepPink
-    static let blue   = LCColor.blue
+    // Computed, not `let`: a `static let` is initialised once per process, so it
+    // would freeze whichever palette happened to be active at first use and the
+    // gradient would keep the old colours after a theme change.
+    static var yellow: Color { LCColor.yellowFill }
+    static var pink:   Color { LCColor.deepPinkFill }
+    static var blue:   Color { LCColor.blueFill }
 
     /// Normalised 0...1 progress for a 1...7 slider value, where 7 → 0 (yellow)
     /// and 1 → 1 (blue). Higher score = happier = yellow end.

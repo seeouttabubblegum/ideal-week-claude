@@ -18,11 +18,77 @@ enum LCColor {
     /// only by shadow. The app never uses pure white cards.
     static let surface = Color(hex: 0xF0F0F5)
 
-    static let pink     = Color(hex: 0xDD4298) // primary accent, values, selected states, links
-    static let deepPink = Color(hex: 0xE5197F) // HH Samuel headings, book-title pink
-    static let blue     = Color(hex: 0x37C1F1) // secondary accent, "NEXT:", info, save-check
-    static let yellow   = Color(hex: 0xE4E80F) // key CTA fills, bell/plus highlights
-    static let yellowAlt = Color(hex: 0xE4C400) // occasional star/warm accent
+    // The three accents come from the palette the user picked in Settings
+    // (Present / Past / Future / 50s — see LCPalette). Present returns exactly
+    // the handoff values below, so the default look is unchanged.
+    //   pink 0xDD4298 · deepPink 0xE5197F · blue 0x37C1F1 · yellow 0xE4E80F
+    private static var palette: LCPalette { ThemeManager.current }
+
+    // Text vs fill. Drawn as TEXT, an accent has to stay readable on the surface,
+    // and the three hue families sit at very different lightnesses — so a rotated
+    // palette darkens the ones that would otherwise fade out (see LCPalette.ink).
+    // Drawn as a large FILL, the accent is used at full strength and the
+    // foreground on top comes from `contrastingInk(on:)`. In the Present palette
+    // ink and fill are the SAME colour for every role, so the default look is
+    // identical whichever of the two a call site reaches for.
+
+    static var pink: Color      { palette.ink(.pink) }                          // primary accent, values, selected states, links
+    static var deepPink: Color  { palette.ink(.pink, deep: true) }              // HH Samuel headings, book-title pink
+    static var blue: Color      { palette.ink(.blue) }                          // secondary accent, "NEXT:", info, save-check
+    static var yellow: Color    { palette.resolved(.yellow, variant: .base) }   // key CTA fills, bell/plus highlights
+    static var yellowAlt: Color { palette.resolved(.yellow, variant: .alt) }    // occasional star/warm accent (#E4C400 in Present)
+
+    /// The same accents at full strength, for large fills — capsules, CTA
+    /// buttons, chips, rings — where legibility is the job of the foreground
+    /// drawn on top rather than of the accent itself.
+    static var pinkFill: Color     { palette.resolved(.pink,   variant: .base) }
+    static var deepPinkFill: Color { palette.resolved(.pink,   variant: .deep) }
+    static var blueFill: Color     { palette.resolved(.blue,   variant: .base) }
+    static var yellowFill: Color   { palette.resolved(.yellow, variant: .base) }
+
+    /// Foreground for text or glyphs drawn ON an accent fill. Picks whichever of
+    /// white / ink has the better WCAG contrast against that fill, so a rotated
+    /// palette can never leave white text sitting on yellow. For the Present
+    /// palette this returns exactly what the handoff specified: white on pink,
+    /// ink on yellow.
+    static func contrastingInk(on fill: Color) -> Color {
+        contrast(.white, fill) >= contrast(ink, fill) ? .white : ink
+    }
+
+    /// Keeps a hand-picked foreground (usually white) on an accent fill unless
+    /// the current palette has made it read WORSE than the very same pairing
+    /// reads in Present — in which case it falls back to the best available ink.
+    ///
+    /// The comparison is against Present rather than against a fixed WCAG
+    /// threshold on purpose: some handoff pairings already sit below 3:1 (white
+    /// on the cover's blue capsule is 1.9:1), and those are the design as
+    /// shipped. What must not happen is a rotation making them worse. In the
+    /// Present palette `fill` and `baseline` are the same colour, so this
+    /// returns `requested` unchanged and the default look cannot move.
+    static func legible(_ requested: Color, onRole role: LCHue,
+                        variant: LCColorVariant = .base) -> Color {
+        let fill = palette.resolved(role, variant: variant)
+        let baseline = LCPalette.present.resolved(role, variant: variant)
+        return contrast(requested, fill) >= contrast(requested, baseline)
+            ? requested
+            : contrastingInk(on: fill)
+    }
+
+    /// WCAG relative-luminance contrast ratio between two colours.
+    static func contrast(_ a: Color, _ b: Color) -> Double {
+        let la = relativeLuminance(a), lb = relativeLuminance(b)
+        return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
+    }
+
+    private static func relativeLuminance(_ color: Color) -> Double {
+        var r: CGFloat = 0, g: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(color).getRed(&r, green: &g, blue: &b, alpha: &a)
+        func channel(_ c: CGFloat) -> Double {
+            let v = Double(c)
+            return v <= 0.03928 ? v / 12.92 : pow((v + 0.055) / 1.055, 2.4)
+        }
+        return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+    }
 
     static let ink           = Color(hex: 0x2B2B31) // labels, ideal titles
     static let textSecondary = Color(hex: 0x6B6B74) // subtitles, helper copy
@@ -37,11 +103,41 @@ enum LCColor {
 
     // Legacy dot tokens (kept for call-site compatibility; dots are now SUNKEN
     // pink/blue per the handoff).
-    static let dotPink        = pink
-    static let dotPinkDark    = Color(hex: 0xCE3D8D)
-    static let dotPinkLight   = Color(hex: 0xEC47A3)
+    static var dotPink: Color      { pinkFill }
+    static var dotPinkDark: Color  { palette.resolved(.pink, variant: .dark) }
+    static var dotPinkLight: Color { palette.resolved(.pink, variant: .light) }
     static let dotEmptyShadow = shadowDark
     static let buttonShadow   = shadowDark
+}
+
+/// The full-bleed cover shared by Login, Register and Forgot Password. Its
+/// ground, its two tinted shadows and its link colour all follow the palette, so
+/// a rotated cover is never a blue ground wearing pink shadows. See
+/// `LCPalette.cover(_:)` for the values and how they were derived.
+enum LCAuthCover {
+    static var background: Color  { ThemeManager.current.coverBackground }
+    static var shadowDark: Color  { ThemeManager.current.coverShadow(dark: true) }
+    static var shadowLight: Color { ThemeManager.current.coverShadow(dark: false) }
+    static var link: Color        { ThemeManager.current.coverLink }
+
+    /// Text and glyphs on the cover. White on Present's deep pink, exactly as
+    /// the handoff specifies; dark ink on Past's blue and Future's yellow, which
+    /// are far too light to carry white type.
+    static var foreground: Color  { LCColor.contrastingInk(on: background) }
+}
+
+extension Color {
+    /// Same colour, nudged in saturation/brightness. Used where the handoff
+    /// specifies a shade relative to an accent (e.g. the category band's
+    /// neumorphic shadow pair) so the shade follows a rotated palette.
+    func shiftedHSB(saturation dS: Double = 0, brightness dV: Double = 0) -> Color {
+        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
+        UIColor(self).getHue(&h, saturation: &s, brightness: &b, alpha: &a)
+        return Color(hue: Double(h),
+                     saturation: min(max(Double(s) + dS, 0), 1),
+                     brightness: min(max(Double(b) + dV, 0), 1),
+                     opacity: Double(a))
+    }
 }
 
 // MARK: - Radii & layout metrics (handoff "Design Tokens")

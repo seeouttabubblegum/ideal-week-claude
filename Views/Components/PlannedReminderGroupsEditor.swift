@@ -94,13 +94,13 @@ struct PlannedReminderGroupsEditor: View {
             Text(dayInfo.dayNumber)
                 .font(.manrope(10, .medium))
         }
-        .foregroundColor(isSelected ? .white : LCColor.textSecondary)
+        .foregroundColor(isSelected ? LCColor.contrastingInk(on: LCColor.pink) : LCColor.textSecondary)
         .frame(minWidth: 40)
         .padding(.vertical, 7)
         .padding(.horizontal, 4)
 
         if isSelected {
-            content.neuRaised(cornerRadius: LCRadius.chip, fill: LCColor.pink,
+            content.neuRaised(cornerRadius: LCRadius.chip, fill: LCColor.pinkFill,
                               cssOffset: LCNeumorphism.raisedOffsetSmall,
                               cssBlur: LCNeumorphism.raisedBlurSmall)
         } else {

@@ -56,5 +56,5 @@ struct AuthLabel: View {
     AuthLabel(type: "login")
         .padding(34)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(LCColor.deepPink)
+        .background(LCColor.deepPinkFill)
 }

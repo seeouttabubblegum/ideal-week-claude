@@ -26,11 +26,8 @@ struct IdealEditView: View {
     }
 
     var accentColor: Color {
-        if let firstColor = storedTempSettings.first {
-            return Color(red: firstColor.red, green: firstColor.green, blue: firstColor.blue, opacity: firstColor.opacity)
-        } else {
-            return Color("default_color")
-        }
+        // Follows the palette chosen in Settings (LCPalette).
+        LCColor.pink
     }
 
     // Get remaining days of current week

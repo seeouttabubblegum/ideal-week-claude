@@ -307,7 +307,7 @@ struct LastWeekReviewView: View {
                     Text(cat.rawValue)
                         .font(.manrope(16, .heavy))
                 }
-                .foregroundColor(isSelected ? .white : LCColor.textSecondary)
+                .foregroundColor(isSelected ? LCColor.contrastingInk(on: LCColor.pink) : LCColor.textSecondary)
                 .frame(width: Self.maxTabWidth, height: 46)
 
                 Button {
@@ -317,7 +317,7 @@ struct LastWeekReviewView: View {
                     Group {
                         if isSelected {
                             label.neuRaised(cornerRadius: LCRadius.chip,
-                                            fill: LCColor.pink,
+                                            fill: LCColor.pinkFill,
                                             cssOffset: LCNeumorphism.raisedOffsetSmall,
                                             cssBlur: LCNeumorphism.raisedBlurSmall)
                         } else {
