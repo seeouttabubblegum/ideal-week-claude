@@ -267,7 +267,7 @@ struct SettingsView: View {
             .font(.hhSamuel(22))
             .kerning(0.3)
             .textCase(.uppercase)
-            .foregroundColor(LCColor.deepPink)
+            .accentText(.pink)
             .padding(.horizontal, 24)
             .padding(.top, topPadding)
             .padding(.bottom, 8)
@@ -292,11 +292,11 @@ struct SettingsView: View {
                 HStack {
                     Text("Delete Account")
                         .font(.manrope(16, .heavy))
-                        .foregroundColor(LCColor.deepPink)
+                        .accentText(.pink)
                     Spacer(minLength: 8)
                     Image(systemName: "chevron.right")
                         .font(.system(size: 13, weight: .bold))
-                        .foregroundColor(LCColor.deepPink.opacity(0.6))
+                        .foregroundColor(LCColor.pink.opacity(0.6))
                 }
                 .contentShape(Rectangle())
             }
@@ -330,7 +330,7 @@ struct SettingsView: View {
                         Image(systemName: "chevron.up.chevron.down")
                             .font(.system(size: 12, weight: .bold))
                     }
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
                 }
                 .padding(.horizontal, 18)
                 .neuGroupedRow()
@@ -351,11 +351,11 @@ struct SettingsView: View {
                     Spacer()
                     Text(theme.stagedPalette.displayName)
                         .font(.manrope(16, .semibold))
-                        .foregroundColor(LCColor.pink)
+                        .accentText(.pink)
                     HStack(spacing: -8) {
                         ForEach(Array(LCHue.allCases.enumerated()), id: \.offset) { index, role in
                             Circle()
-                                .fill(theme.stagedPalette.resolved(role, variant: .base))
+                                .fill(theme.stagedPalette.resolved(role))
                                 .frame(width: 22, height: 22)
                                 .overlay(Circle().stroke(LCColor.surface, lineWidth: 2))
                                 .zIndex(Double(LCHue.allCases.count - index))
@@ -426,7 +426,7 @@ struct SettingsView: View {
                 .overlay {
                     Text(formatTime(notificationTime))
                         .font(.manrope(16, .semibold))
-                        .foregroundColor(LCColor.pink)
+                        .accentText(.pink)
                         .frame(maxWidth: .infinity, maxHeight: .infinity)
                         .background(LCColor.surface)
                         .allowsHitTesting(false)

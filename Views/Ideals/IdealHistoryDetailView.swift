@@ -98,7 +98,7 @@ struct IdealHistoryDetailView: View {
             ZStack {
                 Text("IDEAL DETAILS")
                     .font(.hhSamuel(34))
-                    .foregroundColor(LCColor.deepPink)
+                    .accentText(.pink)
                 HStack {
                     NeuCloseButton(action: { detailViewPresented = false }, diameter: 36)
                     Spacer()
@@ -122,15 +122,15 @@ struct IdealHistoryDetailView: View {
                                         .resizable()
                                         .scaledToFit()
                                         .frame(width: 22, height: 22)
-                                        .foregroundColor(LCColor.blue)
+                                        .accentText(.blue)
                                     Text(cat.rawValue)
                                         .font(.manrope(16))
-                                        .foregroundColor(LCColor.pink)
+                                        .accentText(.pink)
                                 }
                             } else {
                                 Text(item.category)
                                     .font(.manrope(16))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                             }
                         }
 
@@ -151,7 +151,7 @@ struct IdealHistoryDetailView: View {
                         detailRow(label: "Total Completed") {
                             Text("\(item.doneCount)")
                                 .font(.manrope(16))
-                                .foregroundColor(LCColor.pink)
+                                .accentText(.pink)
                         }
 
                         rowDivider
@@ -160,7 +160,7 @@ struct IdealHistoryDetailView: View {
                         detailRow(label: "Target This Week") {
                             Text(item.targetCount)
                                 .font(.manrope(16))
-                                .foregroundColor(LCColor.pink)
+                                .accentText(.pink)
                         }
 
                         // Notes - Read-only
@@ -191,7 +191,7 @@ struct IdealHistoryDetailView: View {
                                 detailRow(label: rows[index].label) {
                                     Text(rows[index].value)
                                         .font(rows[index].emphasized ? .manrope(16, .heavy) : .manrope(15))
-                                        .foregroundColor(LCColor.pink)
+                                        .accentText(.pink)
                                 }
                             }
                         }
@@ -219,7 +219,7 @@ struct IdealHistoryDetailView: View {
     private func sectionHeader(_ title: String, topPadding: CGFloat) -> some View {
         Text(title.uppercased())
             .font(.hhSamuel(22))
-            .foregroundColor(LCColor.deepPink)
+            .accentText(.pink)
             .kerning(0.3)
             .padding(.top, topPadding)
             .padding(.horizontal, 24)

@@ -31,7 +31,7 @@ struct PrimaryMenuView: View {
 
     // MARK: - Colours (handoff 2e)
 
-    /// Deep "book-title" variant of the accent (≈ LCColor.deepPink for the
+    /// Deep "book-title" variant of the accent (≈ LCColor.pink for the
     /// brand pink): same hue, saturation boosted, slightly brighter.
     private var headerColor: Color {
         adjustedAccent(saturation: 1.28, brightness: 1.04)
@@ -51,7 +51,7 @@ struct PrimaryMenuView: View {
     private func adjustedAccent(saturation sMul: CGFloat, brightness bMul: CGFloat) -> Color {
         var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
         guard UIColor(LCColor.pink).getHue(&h, saturation: &s, brightness: &b, alpha: &a) else {
-            return LCColor.deepPink
+            return LCColor.pink
         }
         return Color(hue: h, saturation: min(1, s * sMul), brightness: min(1, b * bMul), opacity: a)
     }
@@ -128,7 +128,7 @@ struct PrimaryMenuView: View {
                     } else {
                         Image(systemName: "person")
                             .font(.system(size: 54))
-                            .foregroundColor(LCColor.pink)
+                            .accentText(.pink)
                     }
                 }
                 .frame(width: 104, height: 104)

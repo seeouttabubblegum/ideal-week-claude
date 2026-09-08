@@ -25,7 +25,7 @@ struct HelpView: View {
                 // First-launch tutorial keeps the HELP wordmark, without the drawer control.
                 Text("HELP")
                     .font(.hhSamuel(34))
-                    .foregroundColor(LCColor.deepPink)
+                    .accentText(.pink)
                     .padding(.top, 16)
                     .padding(.bottom, 4)
             }

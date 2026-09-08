@@ -17,7 +17,7 @@ struct NeuBackCircleButton: View {
         Button(action: action) {
             Image(systemName: "chevron.left")
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
         }
         .buttonStyle(NeuCircleButtonStyle(diameter: diameter))
         .accessibilityLabel("Back")

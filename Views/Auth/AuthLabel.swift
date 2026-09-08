@@ -33,6 +33,10 @@ struct AuthLabel: View {
                 Text("WEEK")
             }
             .font(.hhSamuel(wordmarkSize))
+            // Plain colour, no `.accentText`: this wordmark only ever sits on the
+            // full-bleed cover, not the light surface the silhouette shadow is
+            // calibrated for — and it already carries the cover's own hand-tuned
+            // hard shadow on the next line, which the modifier's would stack under.
             .foregroundColor(LCColor.blue)
             .shadow(color: .black.opacity(0.14), radius: 0, x: 3, y: 4)
             .accessibilityElement(children: .combine)
@@ -56,5 +60,5 @@ struct AuthLabel: View {
     AuthLabel(type: "login")
         .padding(34)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(LCColor.deepPinkFill)
+        .background(LCColor.pink)
 }

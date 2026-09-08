@@ -116,7 +116,7 @@ struct IdealEditView: View {
         Text(title)
             .font(.hhSamuel(23))
             .textCase(.uppercase)
-            .foregroundColor(LCColor.deepPink)
+            .accentText(.pink)
             .padding(.leading, LCMetrics.screenMargin)
             .padding(.top, 20)
             .padding(.bottom, 8)
@@ -131,7 +131,7 @@ struct IdealEditView: View {
             Spacer()
             Text(value)
                 .font(.manrope(valueSize, .bold))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
         }
         .neuGroupedRow()
     }
@@ -226,7 +226,7 @@ struct IdealEditView: View {
                         Spacer()
                         Text(viewModel.category)
                             .font(.manrope(16, .semibold))
-                            .foregroundColor(LCColor.pink)
+                            .accentText(.pink)
                     }
                     .neuGroupedRow()
                 }
@@ -343,7 +343,7 @@ struct IdealEditView: View {
             Text("Edit Ideal")
                 .font(.hhSamuel(40))
                 .textCase(.uppercase)
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
                 .padding(.horizontal, 56)

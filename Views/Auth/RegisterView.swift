@@ -42,7 +42,7 @@ private struct AuthCoverButtonStyle: ButtonStyle {
         configuration.label
             .font(font)
             // This label sits on the BLUE capsule, not on the cover ground.
-            .foregroundColor(LCColor.legible(.white, onRole: .blue))
+            .foregroundColor(LCColor.contrastingInk(on: LCColor.blue))
             .padding(.horizontal, 24)
             .padding(.vertical, 17)
             .frame(maxWidth: .infinity)
@@ -50,12 +50,12 @@ private struct AuthCoverButtonStyle: ButtonStyle {
                 Group {
                     if configuration.isPressed {
                         Capsule().fill(
-                            LCColor.blueFill
+                            LCColor.blue
                                 .shadow(.inner(color: AuthCover.shadowDark, radius: 4, x: 4, y: 4))
                                 .shadow(.inner(color: AuthCover.shadowLight, radius: 4, x: -4, y: -4))
                         )
                     } else {
-                        Capsule().fill(LCColor.blueFill)
+                        Capsule().fill(LCColor.blue)
                             .shadow(color: AuthCover.shadowDark, radius: 7, x: 6, y: 6)
                             .shadow(color: AuthCover.shadowLight, radius: 7, x: -6, y: -6)
                     }
@@ -76,7 +76,7 @@ private struct AuthBackButton: View {
                 .foregroundColor(LCColor.yellow)
                 .frame(width: 38, height: 38)
                 .background(
-                    Circle().fill(LCColor.blueFill)
+                    Circle().fill(LCColor.blue)
                         .shadow(color: AuthCover.shadowDark, radius: 5, x: 5, y: 5)
                         .shadow(color: AuthCover.shadowLight, radius: 5, x: -5, y: -5)
                 )
@@ -212,7 +212,7 @@ struct RegisterView: View {
                         } label: {
                             Text("Log In")
                                 .font(.manrope(16, .bold))
-                                .foregroundColor(AuthCover.link)
+                                .authCoverLink()
                         }
                         .buttonStyle(.plain)
                     }

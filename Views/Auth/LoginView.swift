@@ -45,7 +45,7 @@ private struct AuthCoverButtonStyle: ButtonStyle {
         configuration.label
             .font(font)
             // This label sits on the BLUE capsule, not on the cover ground.
-            .foregroundColor(LCColor.legible(.white, onRole: .blue))
+            .foregroundColor(LCColor.contrastingInk(on: LCColor.blue))
             .padding(.horizontal, 24)
             .padding(.vertical, 17)
             .frame(maxWidth: .infinity)
@@ -53,12 +53,12 @@ private struct AuthCoverButtonStyle: ButtonStyle {
                 Group {
                     if configuration.isPressed {
                         Capsule().fill(
-                            LCColor.blueFill
+                            LCColor.blue
                                 .shadow(.inner(color: AuthCover.shadowDark, radius: 4, x: 4, y: 4))
                                 .shadow(.inner(color: AuthCover.shadowLight, radius: 4, x: -4, y: -4))
                         )
                     } else {
-                        Capsule().fill(LCColor.blueFill)
+                        Capsule().fill(LCColor.blue)
                             .shadow(color: AuthCover.shadowDark, radius: 7, x: 6, y: 6)
                             .shadow(color: AuthCover.shadowLight, radius: 7, x: -6, y: -6)
                     }
@@ -149,7 +149,7 @@ struct LoginView: View {
                         if !viewModel.isConnected {
                             Text("You are currently offline. Please check your internet connection.")
                                 .font(.manrope(14, .semibold))
-                                .foregroundColor(AuthCover.link)
+                                .authCoverLink()
                                 .multilineTextAlignment(.center)
                                 .padding(.top, 14)
                         }
@@ -170,7 +170,7 @@ struct LoginView: View {
                             }) {
                                 Text("Forgot Password?")
                                     .font(.manrope(14, .semibold))
-                                    .foregroundColor(AuthCover.link)
+                                    .authCoverLink()
                                     .frame(maxWidth: .infinity, alignment: .trailing)
                             }
                             .buttonStyle(.plain)
@@ -241,7 +241,7 @@ struct LoginView: View {
                             NavigationLink(destination: RegisterView()) {
                                 Text("Create An Account")
                                     .font(.manrope(16, .bold))
-                                    .foregroundColor(AuthCover.link)
+                                    .authCoverLink()
                             }
                             .disabled(!viewModel.isConnected)
                             .simultaneousGesture(TapGesture().onEnded {

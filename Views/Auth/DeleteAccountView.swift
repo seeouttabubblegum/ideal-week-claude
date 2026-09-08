@@ -72,7 +72,7 @@ struct DeleteAccountView: View {
         VStack(alignment: .leading, spacing: 8) {
             Text("What will be removed")
                 .font(.manrope(14, .heavy))
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .textCase(.uppercase)
             ForEach([
                 "Your ideals, for every week",
@@ -82,7 +82,7 @@ struct DeleteAccountView: View {
                 "Reminders this app created on this device",
             ], id: \.self) { line in
                 HStack(alignment: .top, spacing: 8) {
-                    Text("•").foregroundColor(LCColor.pink)
+                    Text("•").accentText(.pink)
                     Text(line)
                         .font(.manrope(15, .medium))
                         .foregroundColor(LCColor.textSecondary)
@@ -127,7 +127,7 @@ struct DeleteAccountView: View {
     private func errorBanner(_ message: String) -> some View {
         Text(message)
             .font(.manrope(14, .medium))
-            .foregroundColor(LCColor.deepPink)
+            .accentText(.pink)
             .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -138,12 +138,12 @@ struct DeleteAccountView: View {
             submit()
         } label: {
             HStack(spacing: 8) {
-                if isWorking { ProgressView().tint(LCColor.deepPink) }
+                if isWorking { ProgressView().tint(LCColor.pink) }
                 Text(isWorking ? "Deleting…" : "Delete My Account")
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(NeumorphicButtonStyle(tint: LCColor.deepPink, font: .manrope(18, .heavy)))
+        .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink, font: .manrope(18, .heavy)))
         .opacity(canSubmit ? 1 : 0.5)
         .disabled(!canSubmit)
     }
@@ -151,7 +151,7 @@ struct DeleteAccountView: View {
     private var cancelButton: some View {
         Button("Cancel") { dismiss() }
             .font(.manrope(16, .heavy))
-            .foregroundColor(LCColor.pink)
+            .accentText(.pink)
             .frame(maxWidth: .infinity)
             .disabled(isWorking)
     }

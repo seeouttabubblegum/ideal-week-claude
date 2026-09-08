@@ -44,7 +44,7 @@ struct IdealListCategoryLabel: View {
             Text(cat.rawValue.uppercased())
                 .font(.hhSamuel(31))
                 .kerning(0.5)
-                .foregroundColor(LCColor.blue)
+                .accentText(.blue)
                 .accessibilityAddTraits(.isHeader)
 
             Spacer()
@@ -72,7 +72,7 @@ struct IdealListCategoryLabel: View {
         .padding(.horizontal, 22)
         .padding(.vertical, 12)
         .frame(maxWidth: .infinity, minHeight: LCMetrics.rowHeight, alignment: .leading)
-        .background(LCColor.deepPinkFill)
+        .background(LCColor.pink)
         .contentShape(Rectangle())
         .accessibilityElement(children: .combine)
     }
@@ -98,17 +98,13 @@ private struct BandPlusGlyph: Shape {
 /// CSS: `3px 3px 7px rgba(120,8,60,0.5), -3px -3px 6px rgba(255,120,190,0.55)`.
 /// Depresses (shadows collapse + slight scale) while pressed.
 private struct BandAddButtonStyle: ButtonStyle {
-    /// The handoff specifies the pair against the PINK band as
-    /// `rgba(120,8,60,0.5)` / `rgba(255,120,190,0.55)`. Those are the band
-    /// colour shifted by a fixed amount in HSB, so deriving them from whatever
-    /// colour the band currently is keeps the Present look identical and follows
-    /// the band when the palette rotates it.
-    private var darkShadow: Color {
-        LCColor.pink.shiftedHSB(saturation: +0.232, brightness: -0.396).opacity(0.5)
-    }
-    private var lightShadow: Color {
-        LCColor.pink.shiftedHSB(saturation: -0.172, brightness: +0.133).opacity(0.55)
-    }
+    /// The handoff tinted this pair to the pink band (`rgba(120,8,60,0.5)` /
+    /// `rgba(255,120,190,0.55)`), but those are shades of the band colour and the
+    /// palette has only three colours to spend. Neutral black/white at the same
+    /// weight gives the same depth and works on a pink, blue, yellow or grey
+    /// band alike.
+    private let darkShadow  = Color.black.opacity(0.30)
+    private let lightShadow = Color.white.opacity(0.32)
 
     func makeBody(configuration: Configuration) -> some View {
         let pressed = configuration.isPressed

@@ -451,7 +451,7 @@ struct PlanningSheetView: View {
                         Text(title)
                             .font(.hhSamuel(23))
                             .textCase(.uppercase)
-                            .foregroundColor(LCColor.deepPink)
+                            .accentText(.pink)
                             .padding(.horizontal, 20)
                             .padding(.top, 10)
                             .padding(.bottom, 4)
@@ -479,7 +479,7 @@ struct PlanningSheetView: View {
                                                 .resizable()
                                                 .renderingMode(.template)
                                                 .scaledToFit()
-                                                .foregroundColor(LCColor.blue)
+                                                .accentText(.blue)
                                                 .frame(width: 24, height: 24)
                                         }
 
@@ -517,7 +517,7 @@ struct PlanningSheetView: View {
                                         Text("Move to later")
                                             .font(.manrope(13, .semibold))
                                     }
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                                     .padding(.leading, 36)
                                     .padding(.bottom, 8)
                                 }
@@ -665,7 +665,7 @@ struct PlanningSheetView: View {
                     Text("Any of these pieces fit this week?")
                         .font(.hhSamuel(23))
                         .textCase(.uppercase)
-                        .foregroundColor(LCColor.deepPink)
+                        .accentText(.pink)
                         .padding(.horizontal, 20)
                         .padding(.top, 10)
                         .padding(.bottom, 4)
@@ -691,13 +691,13 @@ struct PlanningSheetView: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "plus")
                                     .font(.system(size: 13, weight: .heavy))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                                     .frame(width: 30, height: 30)
                                     .neuRaisedCircle(cssOffset: LCNeumorphism.raisedOffsetSmall,
                                                      cssBlur: LCNeumorphism.raisedBlurSmall)
                                 Text("Create New Wishlist Item")
                                     .font(.manrope(16, .heavy))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)
@@ -772,7 +772,7 @@ struct PlanningSheetView: View {
                             Text("Adding To This Week (\(completedDrafts.count))")
                                 .font(.hhSamuel(23))
                                 .textCase(.uppercase)
-                                .foregroundColor(LCColor.deepPink)
+                                .accentText(.pink)
                                 .padding(.horizontal, 20)
 
                             VStack(spacing: 10) {
@@ -800,7 +800,7 @@ struct PlanningSheetView: View {
                                 Text("Add Another Ideal")
                                     .font(.hhSamuel(23))
                                     .textCase(.uppercase)
-                                    .foregroundColor(LCColor.deepPink)
+                                    .accentText(.pink)
                                     .padding(.horizontal, 16)
                                     .padding(.top, 14)
 
@@ -826,7 +826,7 @@ struct PlanningSheetView: View {
                             Text(addAnotherIdealLabel)
                         }
                     }
-                    .buttonStyle(NeumorphicButtonStyle(tint: LCColor.deepPink, fill: LCColor.yellow, font: .manrope(18, .heavy)))
+                    .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink, fill: LCColor.yellow, font: .manrope(18, .heavy)))
                     .padding(.horizontal, LCMetrics.screenMargin)
 
                     // Help text
@@ -849,7 +849,7 @@ struct PlanningSheetView: View {
                     }) {
                         Text("Cancel")
                             .font(.manrope(16, .heavy))
-                            .foregroundColor(LCColor.pink)
+                            .accentText(.pink)
                             .frame(maxWidth: .infinity)
                             .padding()
                     }
@@ -1058,7 +1058,7 @@ struct PlanningSheetView: View {
                 }) {
                     Text("Edit")
                         .font(.manrope(14, .heavy))
-                        .foregroundColor(LCColor.pink)
+                        .accentText(.pink)
                 }
                 .buttonStyle(PlainButtonStyle())
 
@@ -1114,7 +1114,7 @@ struct PlanningSheetView: View {
                 if viewModel.showReasonError {
                     Text("This field is mandatory")
                         .font(.manrope(12, .semibold))
-                        .foregroundColor(LCColor.deepPink)
+                        .accentText(.pink)
                 }
             }
             .padding(.horizontal)
@@ -1138,7 +1138,7 @@ struct PlanningSheetView: View {
                 }) {
                     Text("Continue")
                 }
-                .buttonStyle(NeumorphicButtonStyle(tint: LCColor.deepPink, fill: LCColor.yellow, font: .manrope(18, .heavy)))
+                .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink, fill: LCColor.yellow, font: .manrope(18, .heavy)))
                 .disabled(viewModel.planningReason.trimmingCharacters(in: .whitespaces).isEmpty)
                 .opacity(viewModel.planningReason.trimmingCharacters(in: .whitespaces).isEmpty ? 0.5 : 1)
                 .padding()
@@ -1164,12 +1164,12 @@ struct PlanningSheetView: View {
                 }) {
                     if viewModel.isSaving {
                         ProgressView()
-                            .tint(LCColor.deepPink)
+                            .tint(LCColor.pink)
                     } else {
                         Text("Save")
                     }
                 }
-                .buttonStyle(NeumorphicButtonStyle(tint: LCColor.deepPink, fill: LCColor.yellow, font: .manrope(18, .heavy)))
+                .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink, fill: LCColor.yellow, font: .manrope(18, .heavy)))
                 .disabled(!viewModel.canSave(requireReason: true) || viewModel.isSaving)
                 .opacity(!viewModel.canSave(requireReason: true) || viewModel.isSaving ? 0.5 : 1)
                 .padding()
@@ -1334,7 +1334,7 @@ struct PlanningSheetView: View {
             Text(title)
                 .font(.hhSamuel(40))
                 .textCase(.uppercase)
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .multilineTextAlignment(.center)
                 .minimumScaleFactor(0.6)
                 .padding(.horizontal, 64)
@@ -1368,10 +1368,10 @@ struct PlanningSheetView: View {
                 Spacer()
                 Text(selection.wrappedValue)
                     .font(.manrope(16, .heavy))
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
                 Image(systemName: "chevron.up.chevron.down")
                     .font(.system(size: 12, weight: .bold))
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
             }
             .frame(maxWidth: .infinity, minHeight: LCMetrics.rowHeight)
             .contentShape(Rectangle())

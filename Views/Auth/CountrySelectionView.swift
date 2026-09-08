@@ -19,7 +19,7 @@ private struct NeuSelectionHeader: View {
             Text(title)
                 .font(.hhSamuel(32))
                 .textCase(.uppercase)
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.7)
                 .padding(.horizontal, 60)
@@ -28,7 +28,7 @@ private struct NeuSelectionHeader: View {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(LCColor.pink)
+                        .accentText(.pink)
                 }
                 .buttonStyle(NeuCircleButtonStyle(diameter: 36))
                 .accessibilityLabel("Back")
@@ -78,7 +78,7 @@ private struct NeuSelectionRow: View {
                 if isSelected {
                     Image(systemName: "checkmark")
                         .font(.system(size: 16, weight: .heavy))
-                        .foregroundColor(LCColor.blue)
+                        .accentText(.blue)
                 }
             }
             .padding(.horizontal, 22)

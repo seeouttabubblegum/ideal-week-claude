@@ -97,7 +97,7 @@ struct ReminderSchedulesEditor: View {
                             } label: {
                                 Image(systemName: "trash")
                                     .font(.system(size: 14, weight: .semibold))
-                                    .foregroundColor(LCColor.deepPink)
+                                    .accentText(.pink)
                             }
                             .buttonStyle(.borderless)
                         }

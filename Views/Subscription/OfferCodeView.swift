@@ -34,7 +34,7 @@ struct OfferCodeView: View {
                     ZStack {
                         Text("REDEEM CODE")
                             .font(.hhSamuel(32))
-                            .foregroundColor(LCColor.deepPink)
+                            .accentText(.pink)
 
                         HStack {
                             Spacer()
@@ -58,14 +58,14 @@ struct OfferCodeView: View {
                     VStack(spacing: 0) {
                         Image(systemName: "ticket")
                             .font(.system(size: 34, weight: .medium))
-                            .foregroundColor(LCColor.pink)
+                            .accentText(.pink)
                             .frame(width: 78, height: 78)
                             .neuRaisedCircle(cssOffset: 5, cssBlur: 12)
                             .accessibilityHidden(true)
 
                         Text("REDEEM\nOFFER CODE")
                             .font(.hhSamuel(34))
-                            .foregroundColor(LCColor.blue)
+                            .accentText(.blue)
                             .multilineTextAlignment(.center)
                             .padding(.top, 18)
 
@@ -81,7 +81,7 @@ struct OfferCodeView: View {
                     // Instructions — numbered steps in a grouped list
                     Text("TO REDEEM")
                         .font(.hhSamuel(22))
-                        .foregroundColor(LCColor.deepPink)
+                        .accentText(.pink)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.top, 26)
                         .padding(.horizontal, 24)
@@ -109,7 +109,7 @@ struct OfferCodeView: View {
                         HStack(spacing: 10) {
                             if isRedeeming {
                                 ProgressView()
-                                    .progressViewStyle(CircularProgressViewStyle(tint: LCColor.deepPink))
+                                    .progressViewStyle(CircularProgressViewStyle(tint: LCColor.pink))
                             } else {
                                 Image(systemName: "ticket")
                                     .font(.system(size: 18, weight: .semibold))
@@ -117,7 +117,7 @@ struct OfferCodeView: View {
                             }
                         }
                     }
-                    .buttonStyle(NeumorphicButtonStyle(tint: LCColor.deepPink,
+                    .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink,
                                                        fill: LCColor.yellow,
                                                        verticalPadding: 17,
                                                        font: .manrope(18, .heavy)))
@@ -139,7 +139,7 @@ struct OfferCodeView: View {
                     }) {
                         Text("Check Subscription Status")
                             .font(.manrope(15, .bold))
-                            .foregroundColor(LCColor.pink)
+                            .accentText(.pink)
                     }
                     .padding(.top, 20)
                     .padding(.bottom, 24)
@@ -167,7 +167,7 @@ struct OfferCodeView: View {
         HStack(alignment: .top, spacing: 14) {
             Text(number)
                 .font(.manrope(17, .heavy))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
             Text(text)
                 .font(.manrope(14, .medium))
                 .foregroundColor(stepTextColor)

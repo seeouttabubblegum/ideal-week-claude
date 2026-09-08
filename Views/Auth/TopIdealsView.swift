@@ -220,7 +220,7 @@ struct TopIdealsView: View {
         ZStack {
             Text("TOP IDEALS")
                 .font(.hhSamuel(32))
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .accessibilityAddTraits(.isHeader)
             HStack {
                 NeuPinkCloseButton { dismiss() }
@@ -251,7 +251,7 @@ struct TopIdealsView: View {
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.system(size: 11, weight: .bold))
                 }
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
             }
             .accessibilityLabel("Category filter")
             .accessibilityValue(selectedCategory.rawValue)
@@ -265,7 +265,7 @@ struct TopIdealsView: View {
                 Image(systemName: "heart.fill")
                     .font(.system(size: 13))
             }
-            .foregroundColor(LCColor.pink)
+            .accentText(.pink)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 12)
@@ -344,7 +344,7 @@ struct TopIdealsView: View {
                     .resizable()
                     .renderingMode(.template)
                     .scaledToFit()
-                    .foregroundColor(LCColor.blue)
+                    .accentText(.blue)
                     .frame(width: 26, height: 26)
             }
 
@@ -375,7 +375,7 @@ struct TopIdealsView: View {
                     .font(.system(size: 16))
                     .foregroundColor(isSaved ? .white : LCColor.pink)
             }
-            .buttonStyle(NeuCircleButtonStyle(fill: isSaved ? LCColor.pinkFill : LCColor.surface, diameter: 34))
+            .buttonStyle(NeuCircleButtonStyle(fill: isSaved ? LCColor.pink : LCColor.surface, diameter: 34))
             .disabled(isSaved)
             .accessibilityLabel(isSaved ? "\(item.title) added to this week" : "Add \(item.title) to this week")
         }
@@ -547,7 +547,7 @@ struct AddToCurrentWeekSheet: View {
         ZStack {
             Text("NEW IDEAL")
                 .font(.hhSamuel(36))
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .accessibilityAddTraits(.isHeader)
             HStack {
                 NeuPinkCloseButton { onDismiss() }
@@ -568,7 +568,7 @@ struct AddToCurrentWeekSheet: View {
     private func sectionHeader(_ text: String) -> some View {
         Text(text)
             .font(.hhSamuel(23))
-            .foregroundColor(LCColor.deepPink)
+            .accentText(.pink)
             .kerning(0.3)
             .padding(.horizontal, 24)
             .padding(.top, 16)
@@ -597,7 +597,7 @@ struct AddToCurrentWeekSheet: View {
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.system(size: 12, weight: .bold))
                 }
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
             }
             .accessibilityLabel("Category")
             .accessibilityValue(selectedCategory)
@@ -619,12 +619,12 @@ struct AddToCurrentWeekSheet: View {
 
                     // Pink progress fill up to the knob
                     Capsule()
-                        .fill(LCColor.pinkFill)
+                        .fill(LCColor.pink)
                         .frame(width: max(0, geometry.size.width * fraction), height: 12)
 
                     // Raised knob with pink core
                     Circle()
-                        .fill(LCColor.pinkFill)
+                        .fill(LCColor.pink)
                         .frame(width: 12, height: 12)
                         .frame(width: 34, height: 34)
                         .neuRaised(Circle(), cssOffset: 4, cssBlur: 9)

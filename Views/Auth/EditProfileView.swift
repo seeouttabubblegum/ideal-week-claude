@@ -102,7 +102,7 @@ struct EditProfileView: View {
             ZStack {
                 Text("EDIT PROFILE")
                     .font(.hhSamuel(32))
-                    .foregroundColor(LCColor.deepPink)
+                    .accentText(.pink)
                     .lineLimit(1)
                     .minimumScaleFactor(0.6)
                     .padding(.horizontal, 56)
@@ -144,7 +144,7 @@ struct EditProfileView: View {
                                 pinkValue(dateOfBirth.formatted(date: .abbreviated, time: .omitted))
                                 Image(systemName: showBirthdayWheels ? "chevron.up" : "chevron.down")
                                     .font(.system(size: 13, weight: .bold))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                             }
                             .contentShape(Rectangle())
                         }
@@ -348,7 +348,7 @@ struct EditProfileView: View {
     private func sectionHeader(_ title: String) -> some View {
         Text(title.uppercased())
             .font(.hhSamuel(22))
-            .foregroundColor(LCColor.deepPink)
+            .accentText(.pink)
             .padding(.horizontal, 24)
             .padding(.top, 18)
             .padding(.bottom, 8)
@@ -365,14 +365,14 @@ struct EditProfileView: View {
     private func pinkValue(_ text: String) -> some View {
         Text(text)
             .font(.manrope(15, .semibold))
-            .foregroundColor(LCColor.pink)
+            .accentText(.pink)
     }
 
     /// Pink stacked up/down chevrons shown on picker rows.
     private var pickerChevrons: some View {
         Image(systemName: "chevron.up.chevron.down")
             .font(.system(size: 12, weight: .bold))
-            .foregroundColor(LCColor.pink)
+            .accentText(.pink)
     }
 
     /// Feathered break between grouped rows.
@@ -388,7 +388,7 @@ struct EditProfileView: View {
             Spacer(minLength: 12)
             TextField("", text: text)
                 .font(.manrope(15, .semibold))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
                 .tint(LCColor.pink)
                 .multilineTextAlignment(.trailing)
                 .keyboardType(keyboard)
@@ -404,7 +404,7 @@ struct EditProfileView: View {
             Spacer(minLength: 12)
             TextField("", text: text)
                 .font(.manrope(15, .semibold))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
                 .tint(LCColor.pink)
                 .multilineTextAlignment(.trailing)
                 .keyboardType(.decimalPad)
@@ -425,7 +425,7 @@ struct EditProfileView: View {
             Spacer(minLength: 12)
             SecureField("", text: text)
                 .font(.manrope(15, .semibold))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
                 .tint(LCColor.pink)
                 .multilineTextAlignment(.trailing)
         }

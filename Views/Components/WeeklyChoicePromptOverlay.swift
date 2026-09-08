@@ -26,7 +26,7 @@ struct WeeklyChoicePromptOverlay: View {
                 Text("What Do You\nWanna Do\nThis Week?")
                     .textCase(.uppercase)
                     .font(.hhSamuel(32))
-                    .foregroundColor(LCColor.deepPink)
+                    .accentText(.pink)
                     .multilineTextAlignment(.center)
                     .accessibilityAddTraits(.isHeader)
 
@@ -39,7 +39,7 @@ struct WeeklyChoicePromptOverlay: View {
                 VStack(spacing: 14) {
                     Button("Pick For Me To Plan", action: onPick)
                         .buttonStyle(NeumorphicButtonStyle(
-                            tint: LCColor.deepPink, fill: LCColor.yellow,
+                            tint: LCColor.pink, fill: LCColor.yellow,
                             verticalPadding: 17, font: .manrope(18, .heavy)))
 
                     Button("Skip For Now", action: onSkip)

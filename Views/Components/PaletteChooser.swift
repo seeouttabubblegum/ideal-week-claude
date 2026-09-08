@@ -60,7 +60,7 @@ struct PaletteChooser: View {
         HStack(spacing: -10) {
             ForEach(Array(LCHue.allCases.enumerated()), id: \.offset) { index, role in
                 Circle()
-                    .fill(palette.resolved(role, variant: .base))
+                    .fill(palette.resolved(role))
                     .frame(width: 26, height: 26)
                     .overlay(Circle().stroke(LCColor.surface, lineWidth: 2))
                     .zIndex(Double(LCHue.allCases.count - index))

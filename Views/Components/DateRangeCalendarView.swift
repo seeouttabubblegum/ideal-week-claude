@@ -82,7 +82,7 @@ struct DateRangeCalendarView: View {
                         .foregroundColor(LCColor.contrastingInk(on: LCColor.pink))
                         .padding(.horizontal, 14).padding(.vertical, 9)
                         .neuRaised(cornerRadius: LCRadius.chip,
-                                   fill: LCColor.pinkFill,
+                                   fill: LCColor.pink,
                                    cssOffset: LCNeumorphism.raisedOffsetSmall,
                                    cssBlur: LCNeumorphism.raisedBlurSmall)
                 } else {
@@ -118,20 +118,20 @@ struct DateRangeCalendarView: View {
             Button { shiftMonth(-1) } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(NeuCircleButtonStyle(diameter: 36))
             Spacer()
             Text(monthTitle)
                 .font(.hhSamuel(20))
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .textCase(.uppercase)
             Spacer()
             Button { shiftMonth(1) } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 15, weight: .bold))
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(NeuCircleButtonStyle(diameter: 36))
@@ -179,13 +179,13 @@ struct DateRangeCalendarView: View {
                     Group {
                         if state.endpoint {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                .fill(LCColor.pinkFill)
+                                .fill(LCColor.pink)
                                 .shadow(color: LCColor.shadowDark, radius: 3.5, x: 3, y: 3)
                                 .shadow(color: LCColor.shadowLight, radius: 3.5, x: -3, y: -3)
                         } else {
                             RoundedRectangle(cornerRadius: 10, style: .continuous)
                                 .fill(
-                                    (state.selected ? LCColor.pinkFill.opacity(0.18) : LCColor.surface)
+                                    (state.selected ? LCColor.pink.opacity(0.18) : LCColor.surface)
                                         .shadow(.inner(color: LCColor.shadowDark, radius: 2.5, x: 2.5, y: 2.5))
                                         .shadow(.inner(color: LCColor.shadowLight, radius: 2.5, x: -2.5, y: -2.5))
                                 )

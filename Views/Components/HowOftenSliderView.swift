@@ -31,7 +31,7 @@ struct HowOftenSliderView: View {
                         .neuSunkenCapsule()
 
                     Capsule()
-                        .fill(LCColor.pinkFill)
+                        .fill(LCColor.pink)
                         .frame(width: thumbX, height: HowOftenSlider.trackHeight)
 
                     Circle()
@@ -40,7 +40,7 @@ struct HowOftenSliderView: View {
                                height: HowOftenSlider.knobDiameter)
                         .shadow(color: LCColor.shadowDark, radius: 3.5, x: 3, y: 3)
                         .shadow(color: LCColor.shadowLight, radius: 3.5, x: -3, y: -3)
-                        .overlay(Circle().fill(LCColor.pinkFill).frame(width: 14, height: 14))
+                        .overlay(Circle().fill(LCColor.pink).frame(width: 14, height: 14))
                         .offset(x: thumbX - HowOftenSlider.knobDiameter / 2)
                 }
                 .frame(maxHeight: .infinity)

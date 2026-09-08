@@ -117,7 +117,7 @@ struct HistoryProgressView: View {
                                     VStack(spacing: 12) {
                                         Image(systemName: "list.bullet")
                                             .font(.system(size: 60))
-                                            .foregroundColor(LCColor.pink)
+                                            .accentText(.pink)
                                         Text("You haven't added any ideals in your list yet.")
                                             .font(.manrope(17, .bold))
                                             .foregroundColor(LCColor.ink)
@@ -130,7 +130,7 @@ struct HistoryProgressView: View {
                                     VStack(spacing: 12) {
                                         Image(systemName: "checkmark.circle.fill")
                                             .font(.system(size: 60))
-                                            .foregroundColor(LCColor.blue)
+                                            .accentText(.blue)
                                         Text("You've completed all the pieces this week. Bravo!")
                                             .font(.manrope(17, .bold))
                                             .foregroundColor(LCColor.ink)
@@ -168,7 +168,7 @@ struct HistoryProgressView: View {
                                             let display = ReviewScoreScale.display(fromStored: avgScore)
                                             Text("\(ReviewScoreScale.formattedDisplay(display))/7")
                                                 .font(.manrope(16, .heavy))
-                                                .foregroundColor(LCColor.pink)
+                                                .accentText(.pink)
                                         } else {
                                             Text("—")
                                                 .font(.manrope(16, .heavy))
@@ -229,7 +229,7 @@ struct HistoryProgressView: View {
                                 HStack(spacing: 10) {
                                     Image(systemName: "person.2.fill")
                                         .font(.system(size: 14, weight: .semibold))
-                                        .foregroundColor(LCColor.blue)
+                                        .accentText(.blue)
                                     Text("Top Ideals from the Community")
                                         .font(.manrope(16, .heavy))
                                         .foregroundColor(LCColor.ink)
@@ -515,9 +515,9 @@ struct HistoryProgressView: View {
         case .fix:       return LCColor.pink
         case .fitness:   return LCColor.blue
         case .feelings:  return LCColor.yellow
-        case .faculties: return LCColor.deepPink
+        case .faculties: return LCColor.pink
         case .family:    return LCColor.blue
-        case .finance:   return LCColor.yellowAlt
+        case .finance:   return LCColor.yellow
         case .fun:       return LCColor.pink
         }
     }

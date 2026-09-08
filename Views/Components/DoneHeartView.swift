@@ -42,7 +42,7 @@ struct DoneHeartView: View {
                 )
             Text("DONE!")
                 .font(.manrope(14, .heavy))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
                 .lineLimit(1)
                 .fixedSize()
                 .opacity(labelIn)

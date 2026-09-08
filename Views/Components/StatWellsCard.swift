@@ -76,7 +76,7 @@ struct PropelArrow: View {
             Image(systemName: "chevron.right")
                 .foregroundColor(LCColor.pink.opacity(0.7))
             Image(systemName: "chevron.right")
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
         }
         .font(.system(size: 15, weight: .bold))
         .accessibilityHidden(true)

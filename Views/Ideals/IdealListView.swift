@@ -693,7 +693,7 @@ struct IdealListView: View {
                             route: .currentWeek)
                 Text("This week has no ideals yet. Fill it from your last active week.")
                     .font(.manrope(14, .medium))
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
@@ -938,7 +938,7 @@ struct IdealListView: View {
         Text(text)
             .font(.hhSamuel(40))
             .textCase(.uppercase)
-            .foregroundColor(LCColor.deepPink)
+            .accentText(.pink)
             .frame(maxWidth: .infinity, alignment: .center)
             .padding(.horizontal, LCMetrics.screenMargin)
             .padding(.top, 10)
@@ -983,7 +983,7 @@ struct IdealListView: View {
                             .renderingMode(.template)
                             .resizable()
                             .scaledToFit()
-                            .foregroundColor(LCColor.blue)
+                            .accentText(.blue)
                             .frame(width: 24, height: 24)
                             .accessibilityHidden(true)
                     }
@@ -1039,7 +1039,7 @@ struct IdealListView: View {
                     if abs(itemOffset) > detailsEnd {
                         Text("Delete")
                             .font(.manrope(16, .heavy))
-                            .foregroundColor(LCColor.pink)
+                            .accentText(.pink)
                             .lineLimit(1)
                             .fixedSize()
                             .frame(width: abs(itemOffset) - detailsEnd, alignment: .center)
@@ -1531,12 +1531,12 @@ struct IdealListView: View {
                     HStack(spacing: 10) {
                         Text("Add To The Next List")
                             .font(.manrope(20, .heavy))
-                            .foregroundColor(LCColor.deepPink)
+                            .accentText(.pink)
                         Image("Next Puzzle_Blue")
                             .renderingMode(.template)
                             .resizable()
                             .scaledToFit()
-                            .foregroundColor(LCColor.blue)
+                            .accentText(.blue)
                             .frame(width: 28, height: 28)
                     }
                     .frame(maxWidth: .infinity)
@@ -1555,7 +1555,7 @@ struct IdealListView: View {
                         "You can add more plans for the next week! Use the button below to pick your plans from your existing ideals or wishlist" :
                         "You can now start planning for the next week! Use the button below to pick existing ideals for the next week or use your wishlist.")
                         .font(.manrope(16, .medium))
-                        .foregroundColor(LCColor.pink)
+                        .accentText(.pink)
                         .fixedSize(horizontal: false, vertical: true)
                         .padding(.vertical)
                 }
@@ -1761,7 +1761,7 @@ struct IdealListView: View {
                         } label: {
                             Text("🧪 Open Weekly Prompt (Test)")
                                 .font(.manrope(14, .bold))
-                                .foregroundColor(LCColor.blue)
+                                .accentText(.blue)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal, pointsFromArtboardPixels(77))   // 77px side gutter
                                 .padding(.bottom, 8)
@@ -1993,7 +1993,7 @@ struct IdealListView: View {
                             if nextWeekPlannedItems.isEmpty {
                                 Text("NEXT?")
                                     .font(.hhSamuel(40))
-                                    .foregroundColor(LCColor.deepPink)
+                                    .accentText(.pink)
                                     .accessibilityAddTraits(.isHeader)
                             }
                             HStack {

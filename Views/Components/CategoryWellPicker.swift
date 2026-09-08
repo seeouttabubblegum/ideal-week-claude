@@ -43,7 +43,7 @@ struct CategoryWellPicker: View {
             Group {
                 if isSelected {
                     label.neuRaised(cornerRadius: LCRadius.chip,
-                                    fill: LCColor.pinkFill,
+                                    fill: LCColor.pink,
                                     cssOffset: LCNeumorphism.raisedOffsetSmall,
                                     cssBlur: LCNeumorphism.raisedBlurSmall)
                 } else {

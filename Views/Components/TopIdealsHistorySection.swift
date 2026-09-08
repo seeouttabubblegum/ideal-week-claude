@@ -72,7 +72,7 @@ struct TopIdealsHistorySection: View {
         VStack(spacing: 0) {
             Text("Your Top Ideals")
                 .font(.hhSamuel(26))
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .textCase(.uppercase)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 20)
@@ -96,7 +96,7 @@ struct TopIdealsHistorySection: View {
             Text(selectedCategory.rawValue)
                 .font(.hhSamuel(20))
                 .textCase(.uppercase)
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .frame(maxWidth: .infinity)
                 .padding(.top, 12)
                 .animation(nil, value: selectedCategory)
@@ -113,7 +113,7 @@ struct TopIdealsHistorySection: View {
         Button(action: { showDatePicker = true }) {
             HStack {
                 Image(systemName: "calendar")
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
                 Text(dateFilterLabel)
                     .font(.manrope(15, .bold))
                     .foregroundColor(LCColor.ink)
@@ -167,7 +167,7 @@ struct TopIdealsHistorySection: View {
                         Group {
                             if isSelected {
                                 RoundedRectangle(cornerRadius: LCRadius.chip, style: .continuous)
-                                    .fill(LCColor.pinkFill)
+                                    .fill(LCColor.pink)
                                     .shadow(color: LCColor.shadowDark, radius: 3.5, x: 3, y: 3)
                                     .shadow(color: LCColor.shadowLight, radius: 3.5, x: -3, y: -3)
                             } else {

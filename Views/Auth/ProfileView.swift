@@ -133,7 +133,7 @@ struct ProfileView: View {
                 }) {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(LCColor.pink)
+                        .accentText(.pink)
                 }
                 .buttonStyle(NeuCircleButtonStyle(fill: LCColor.surface, diameter: 52))
                 .accessibilityLabel("Log out")
@@ -221,7 +221,7 @@ struct ProfileView: View {
                         } else {
                             Image(systemName: "person")
                                 .font(.system(size: 44, weight: .regular))
-                                .foregroundColor(LCColor.pink)
+                                .accentText(.pink)
                                 .frame(width: 104, height: 104)
                                 .neuRaised(Circle(), cssOffset: 6, cssBlur: 14)
                         }
@@ -233,7 +233,7 @@ struct ProfileView: View {
                         }) {
                             Image(systemName: "camera")
                                 .font(.system(size: 13, weight: .medium))
-                                .foregroundColor(LCColor.pink)
+                                .accentText(.pink)
                         }
                         .buttonStyle(NeuCircleButtonStyle(diameter: 30))
                         .disabled(viewModel.isLoading)

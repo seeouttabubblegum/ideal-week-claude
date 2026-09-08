@@ -22,7 +22,7 @@ struct GroupedProgressRingsIcon: View {
     /// Defaults follow the handoff header (pink ring · warm-yellow ring · blue
     /// pie — the mock's green maps to the palette's warm yellow, no green
     /// allowed). Pass 3 ink colours for the monochrome menu-drawer variant.
-    var ringColors: [Color] = [LCColor.pink, LCColor.yellowAlt, LCColor.blue]
+    var ringColors: [Color] = [LCColor.pink, LCColor.yellow, LCColor.blue]
     var lineWidth: CGFloat = 3.0
 
     var body: some View {

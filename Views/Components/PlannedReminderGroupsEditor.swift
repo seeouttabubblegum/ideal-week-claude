@@ -38,7 +38,7 @@ struct PlannedReminderGroupsEditor: View {
                             } label: {
                                 Image(systemName: "trash")
                                     .font(.system(size: 13, weight: .semibold))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                             }
                             .buttonStyle(.borderless)
                             .accessibilityLabel("Remove reminder \(index + 1)")
@@ -79,7 +79,7 @@ struct PlannedReminderGroupsEditor: View {
             } label: {
                 Label("Add another reminder", systemImage: "plus.circle")
                     .font(.manrope(13, .heavy))
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
             }
             .buttonStyle(.borderless)
         }
@@ -100,7 +100,7 @@ struct PlannedReminderGroupsEditor: View {
         .padding(.horizontal, 4)
 
         if isSelected {
-            content.neuRaised(cornerRadius: LCRadius.chip, fill: LCColor.pinkFill,
+            content.neuRaised(cornerRadius: LCRadius.chip, fill: LCColor.pink,
                               cssOffset: LCNeumorphism.raisedOffsetSmall,
                               cssBlur: LCNeumorphism.raisedBlurSmall)
         } else {

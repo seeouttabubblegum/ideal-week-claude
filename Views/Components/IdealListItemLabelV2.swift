@@ -262,7 +262,7 @@ struct IdealListItemLabelV2: View {
                             .renderingMode(.template)
                             .resizable()
                             .scaledToFit()
-                            .foregroundColor(LCColor.blue)
+                            .accentText(.blue)
                             .frame(width: 24, height: 24)
                             .alignmentGuide(.lastTextBaseline) { $0[.bottom] - 2 }
                             .accessibilityHidden(true)

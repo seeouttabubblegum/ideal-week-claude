@@ -50,14 +50,14 @@ struct SubscriptionView: View {
                     VStack(spacing: 0) {
                         Image(systemName: "star.fill")
                             .font(.system(size: 38))
-                            .foregroundColor(LCColor.yellowAlt)
+                            .accentText(.yellow)
                             .frame(width: 78, height: 78)
                             .neuRaisedCircle(cssOffset: 5, cssBlur: 12)
                             .accessibilityHidden(true)
 
                         Text("UNLOCK THE\nIDEAL WEEK")
                             .font(.hhSamuel(38))
-                            .foregroundColor(LCColor.blue)
+                            .accentText(.blue)
                             .multilineTextAlignment(.center)
                             .padding(.top, 18)
 
@@ -77,11 +77,11 @@ struct SubscriptionView: View {
                             .foregroundColor(.white)
                         Text("2 Weeks Free Trial")
                             .font(.hhSamuel(26))
-                            .foregroundColor(LCColor.yellow)
+                            .accentText(.yellow)
                     }
                     .frame(maxWidth: .infinity)
                     .padding(18)
-                    .neuRaised(cornerRadius: 20, fill: LCColor.pinkFill, cssOffset: 6, cssBlur: 16)
+                    .neuRaised(cornerRadius: 20, fill: LCColor.pink, cssOffset: 6, cssBlur: 16)
                     .padding(.horizontal, 28)
                     .padding(.top, 22)
 
@@ -107,7 +107,7 @@ struct SubscriptionView: View {
                         VStack(spacing: 16) {
                             Image(systemName: "exclamationmark.triangle")
                                 .font(.system(size: 40))
-                                .foregroundColor(LCColor.pink)
+                                .accentText(.pink)
                             Text("Unable to load subscription options")
                                 .font(.manrope(17, .heavy))
                                 .foregroundColor(LCColor.ink)
@@ -115,7 +115,7 @@ struct SubscriptionView: View {
                             if let error = subscriptionManager.errorMessage {
                                 Text(error)
                                     .font(.manrope(13, .medium))
-                                    .foregroundColor(LCColor.deepPink)
+                                    .accentText(.pink)
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal)
                             } else {
@@ -133,7 +133,7 @@ struct SubscriptionView: View {
                             }) {
                                 Text("Retry")
                             }
-                            .buttonStyle(NeumorphicButtonStyle(tint: LCColor.deepPink,
+                            .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink,
                                                                fill: LCColor.yellow,
                                                                fullWidth: false))
                         }
@@ -167,13 +167,13 @@ struct SubscriptionView: View {
                             HStack {
                                 if isPurchasing {
                                     ProgressView()
-                                        .progressViewStyle(CircularProgressViewStyle(tint: LCColor.deepPink))
+                                        .progressViewStyle(CircularProgressViewStyle(tint: LCColor.pink))
                                 } else {
                                     Text("Start Free Trial")
                                 }
                             }
                         }
-                        .buttonStyle(NeumorphicButtonStyle(tint: LCColor.deepPink,
+                        .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink,
                                                            fill: LCColor.yellow,
                                                            verticalPadding: 17,
                                                            font: .manrope(18, .heavy)))
@@ -190,7 +190,7 @@ struct SubscriptionView: View {
                     }) {
                         Text("Restore Purchases")
                             .font(.manrope(14, .bold))
-                            .foregroundColor(LCColor.pink)
+                            .accentText(.pink)
                     }
                     .padding(.top, 18)
 
@@ -291,7 +291,7 @@ struct SubscriptionOptionCard: View {
                                 .foregroundColor(.white)
                                 .padding(.horizontal, 8)
                                 .padding(.vertical, 3)
-                                .background(RoundedRectangle(cornerRadius: 7).fill(LCColor.blueFill))
+                                .background(RoundedRectangle(cornerRadius: 7).fill(LCColor.blue))
                         }
                     }
 
@@ -301,7 +301,7 @@ struct SubscriptionOptionCard: View {
                             if introOffer.period.unit == .day && introOffer.period.value == 14 {
                                 Text("2 weeks free trial")
                                     .font(.manrope(12.5, .medium))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                             }
                         }
 
@@ -330,7 +330,7 @@ struct SubscriptionOptionCard: View {
                 ZStack {
                     if isSelected {
                         Circle()
-                            .fill(LCColor.blueFill)
+                            .fill(LCColor.blue)
                             .shadow(color: LCColor.shadowDark, radius: 3, x: 3, y: 3)
                             .shadow(color: LCColor.shadowLight, radius: 3, x: -3, y: -3)
                         Image(systemName: "checkmark")

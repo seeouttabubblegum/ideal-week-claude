@@ -134,13 +134,13 @@ struct TopNav: View {
                         HStack(spacing: 6) {
                             Text("NEXT")
                                 .font(.manrope(15, .heavy))
-                                .foregroundColor(LCColor.deepPink)
+                                .accentText(.pink)
                                 .lineLimit(1)
                                 .fixedSize()
                             Image("Next Puzzle_Blue")
                                 .renderingMode(.template)
                                 .resizable().scaledToFit()
-                                .foregroundColor(LCColor.blue)
+                                .accentText(.blue)
                                 .frame(width: 20, height: 20)
                         }
                         .fixedSize()
@@ -157,7 +157,9 @@ struct TopNav: View {
             // beside it — see the overlay below.
             Text(headerQuote)
                 .font(.manrope(15, .medium))
-                .foregroundColor(LCColor.pink)
+                // Body copy, so it never takes the lightest colour: a paragraph
+                // wearing the silhouette shadow reads as outlined and heavy.
+                .accentBodyText(.pink)
                 .lineSpacing(3)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -193,7 +195,7 @@ struct TopNav: View {
             HStack(alignment: .center, spacing: 4) {
                 Text("MY")
                     .font(.hhSamuel(58))
-                    .foregroundColor(LCColor.blue)
+                    .accentText(.blue)
                     .accessibilityLabel("My Ideal Week")
                 if userId != nil, !progressRings.isEmpty {
                     Button {
@@ -214,11 +216,11 @@ struct TopNav: View {
             }
             Text("IDEAL")
                 .font(.hhSamuel(58))
-                .foregroundColor(LCColor.blue)
+                .accentText(.blue)
                 .accessibilityHidden(true)
             Text("WEEK")
                 .font(.hhSamuel(58))
-                .foregroundColor(LCColor.blue)
+                .accentText(.blue)
                 .accessibilityHidden(true)
         }
     }
@@ -229,7 +231,7 @@ struct TopNav: View {
         HStack(alignment: .center) {
             Text(pageTitle.uppercased())
                 .font(.hhSamuel(34))
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .lineLimit(1)            // keep on one line; shrink to fit beside the controls
                 .minimumScaleFactor(0.55)
                 .fixedSize(horizontal: false, vertical: true)

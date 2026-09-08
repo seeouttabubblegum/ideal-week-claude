@@ -40,11 +40,11 @@ struct MissedCategoriesNotice: View {
             if stillMissing.isEmpty {
                 Text("You are all caught up now!")
                     .font(.manrope(15, .heavy))
-                    .foregroundColor(LCColor.blue)
+                    .accentText(.blue)
             } else {
                 Text(Self.message(stillMissing))
                     .font(.manrope(15, .medium))
-                    .foregroundColor(LCColor.deepPink)
+                    .accentText(.pink)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }

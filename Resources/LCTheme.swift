@@ -18,60 +18,40 @@ enum LCColor {
     /// only by shadow. The app never uses pure white cards.
     static let surface = Color(hex: 0xF0F0F5)
 
-    // The three accents come from the palette the user picked in Settings
-    // (Present / Past / Future / 50s — see LCPalette). Present returns exactly
-    // the handoff values below, so the default look is unchanged.
-    //   pink 0xDD4298 · deepPink 0xE5197F · blue 0x37C1F1 · yellow 0xE4E80F
+    // Three brand colours, used at FULL STRENGTH — see LCPalette. There are no
+    // shades or tints: `pink`, `blue` and `yellow` are ROLES, and a palette
+    // decides which of loveandchaos.org's three hexes each role carries.
+    //   primary #FD399A · secondary #00BAF1 · tertiary #FFF000  (Present)
     private static var palette: LCPalette { ThemeManager.current }
 
-    // Text vs fill. Drawn as TEXT, an accent has to stay readable on the surface,
-    // and the three hue families sit at very different lightnesses — so a rotated
-    // palette darkens the ones that would otherwise fade out (see LCPalette.ink).
-    // Drawn as a large FILL, the accent is used at full strength and the
-    // foreground on top comes from `contrastingInk(on:)`. In the Present palette
-    // ink and fill are the SAME colour for every role, so the default look is
-    // identical whichever of the two a call site reaches for.
+    static var pink: Color   { palette.resolved(.pink) }    // primary — values, selected states, links, headings
+    static var blue: Color   { palette.resolved(.blue) }    // secondary — "NEXT:", info, save-check, titles
+    static var yellow: Color { palette.resolved(.yellow) }  // tertiary — key CTA fills, bell/plus highlights
 
-    static var pink: Color      { palette.ink(.pink) }                          // primary accent, values, selected states, links
-    static var deepPink: Color  { palette.ink(.pink, deep: true) }              // HH Samuel headings, book-title pink
-    static var blue: Color      { palette.ink(.blue) }                          // secondary accent, "NEXT:", info, save-check
-    static var yellow: Color    { palette.resolved(.yellow, variant: .base) }   // key CTA fills, bell/plus highlights
-    static var yellowAlt: Color { palette.resolved(.yellow, variant: .alt) }    // occasional star/warm accent (#E4C400 in Present)
+    /// The colour a role carries in the current palette. Equivalent to the
+    /// three accessors above; useful where the role arrives as a value.
+    static func resolved(_ role: LCHue) -> Color { palette.resolved(role) }
 
-    /// The same accents at full strength, for large fills — capsules, CTA
-    /// buttons, chips, rings — where legibility is the job of the foreground
-    /// drawn on top rather than of the accent itself.
-    static var pinkFill: Color     { palette.resolved(.pink,   variant: .base) }
-    static var deepPinkFill: Color { palette.resolved(.pink,   variant: .deep) }
-    static var blueFill: Color     { palette.resolved(.blue,   variant: .base) }
-    static var yellowFill: Color   { palette.resolved(.yellow, variant: .base) }
+    /// The colour long-form copy takes for a role — the same three, but never
+    /// the one that would need the silhouette shadow. See `LCPalette.bodyResolved`.
+    static func bodyResolved(_ role: LCHue) -> Color { palette.bodyResolved(role) }
 
-    /// Foreground for text or glyphs drawn ON an accent fill. Picks whichever of
-    /// white / ink has the better WCAG contrast against that fill, so a rotated
-    /// palette can never leave white text sitting on yellow. For the Present
-    /// palette this returns exactly what the handoff specified: white on pink,
-    /// ink on yellow.
-    static func contrastingInk(on fill: Color) -> Color {
-        contrast(.white, fill) >= contrast(ink, fill) ? .white : ink
-    }
+    /// The hard offset shadow that keeps an accent readable when the palette has
+    /// handed that role a colour too light to stand on its own — nil when it
+    /// reads unaided. Prefer the `.accentText(_:)` modifier, which applies both
+    /// the colour and this shadow together.
+    static func textShadow(for role: LCHue) -> Color? { palette.textShadow(for: role) }
 
-    /// Keeps a hand-picked foreground (usually white) on an accent fill unless
-    /// the current palette has made it read WORSE than the very same pairing
-    /// reads in Present — in which case it falls back to the best available ink.
+    /// Foreground for text or glyphs drawn ON an accent fill.
     ///
-    /// The comparison is against Present rather than against a fixed WCAG
-    /// threshold on purpose: some handoff pairings already sit below 3:1 (white
-    /// on the cover's blue capsule is 1.9:1), and those are the design as
-    /// shipped. What must not happen is a rotation making them worse. In the
-    /// Present palette `fill` and `baseline` are the same colour, so this
-    /// returns `requested` unchanged and the default look cannot move.
-    static func legible(_ requested: Color, onRole role: LCHue,
-                        variant: LCColorVariant = .base) -> Color {
-        let fill = palette.resolved(role, variant: variant)
-        let baseline = LCPalette.present.resolved(role, variant: variant)
-        return contrast(requested, fill) >= contrast(requested, baseline)
-            ? requested
-            : contrastingInk(on: fill)
+    /// The handoff's own rule is white on the darker accents, ink on the light
+    /// ones, and this reproduces it: white wherever white still clears WCAG's
+    /// 3:1 large-text minimum, ink everywhere else. Picking purely by "whichever
+    /// contrasts more" would flip pink chips to dark text — white on #FD399A is
+    /// 3.37:1 and ink is 4.11:1 — which is more readable but not the design.
+    /// White can never end up on yellow: there it manages 1.06:1.
+    static func contrastingInk(on fill: Color) -> Color {
+        contrast(.white, fill) >= 3 ? .white : ink
     }
 
     /// WCAG relative-luminance contrast ratio between two colours.
@@ -101,42 +81,72 @@ enum LCColor {
     /// Feathered divider base grey (used at 0.4 opacity mid-stop).
     static let dividerGrey = Color(hex: 0xA0A2B2)
 
-    // Legacy dot tokens (kept for call-site compatibility; dots are now SUNKEN
-    // pink/blue per the handoff).
-    static var dotPink: Color      { pinkFill }
-    static var dotPinkDark: Color  { palette.resolved(.pink, variant: .dark) }
-    static var dotPinkLight: Color { palette.resolved(.pink, variant: .light) }
+    // Legacy dot token (kept for call-site compatibility; dots are now SUNKEN
+    // primary-accent per the handoff).
+    static var dotPink: Color      { pink }
     static let dotEmptyShadow = shadowDark
     static let buttonShadow   = shadowDark
 }
 
-/// The full-bleed cover shared by Login, Register and Forgot Password. Its
-/// ground, its two tinted shadows and its link colour all follow the palette, so
-/// a rotated cover is never a blue ground wearing pink shadows. See
-/// `LCPalette.cover(_:)` for the values and how they were derived.
+/// The full-bleed cover shared by Login, Register and Forgot Password.
+///
+/// The ground is the primary accent and the links the tertiary, so the cover
+/// rotates with everything else. Its two neumorphic shadows are deliberately
+/// NEUTRAL rather than a tint of the ground: tinting them would mean inventing a
+/// fourth and fifth colour, and black/white at low opacity gives the same depth
+/// on a pink, a blue, a yellow or a grey cover alike.
 enum LCAuthCover {
-    static var background: Color  { ThemeManager.current.coverBackground }
-    static var shadowDark: Color  { ThemeManager.current.coverShadow(dark: true) }
-    static var shadowLight: Color { ThemeManager.current.coverShadow(dark: false) }
-    static var link: Color        { ThemeManager.current.coverLink }
+    static var background: Color  { LCColor.pink }
+    static var link: Color        { LCColor.yellow }
+    static let shadowDark  = Color.black.opacity(0.22)
+    static let shadowLight = Color.white.opacity(0.28)
 
-    /// Text and glyphs on the cover. White on Present's deep pink, exactly as
-    /// the handoff specifies; dark ink on Past's blue and Future's yellow, which
-    /// are far too light to carry white type.
+    /// Text and glyphs on the cover. White or ink, whichever reads better on the
+    /// ground the palette painted — neither is a shade of a brand colour.
     static var foreground: Color  { LCColor.contrastingInk(on: background) }
+
+    /// A hard shadow behind the links, in the third brand colour, for the
+    /// palettes where link and ground sit too close to separate on their own.
+    static var linkShadow: Color? { ThemeManager.current.coverLinkShadow }
 }
 
-extension Color {
-    /// Same colour, nudged in saturation/brightness. Used where the handoff
-    /// specifies a shade relative to an accent (e.g. the category band's
-    /// neumorphic shadow pair) so the shade follows a rotated palette.
-    func shiftedHSB(saturation dS: Double = 0, brightness dV: Double = 0) -> Color {
-        var h: CGFloat = 0, s: CGFloat = 0, b: CGFloat = 0, a: CGFloat = 0
-        UIColor(self).getHue(&h, saturation: &s, brightness: &b, alpha: &a)
-        return Color(hue: Double(h),
-                     saturation: min(max(Double(s) + dS, 0), 1),
-                     brightness: min(max(Double(b) + dV, 0), 1),
-                     opacity: Double(a))
+/// Paints text or a glyph in one of the three brand colours — and, when the
+/// palette has handed that role a colour too light to read, gives it the hard
+/// offset shadow that makes it legible without changing the colour itself.
+/// Use this anywhere an accent is the INK; plain fills keep `.foregroundColor`.
+extension View {
+    func accentText(_ role: LCHue) -> some View {
+        modifier(AccentTextStyle(role: role))
+    }
+}
+
+extension View {
+    /// Long-form copy in an accent. Same three colours, but never the one that
+    /// would need the silhouette shadow — a whole paragraph wearing that shadow
+    /// reads as outlined and heavy. See `LCPalette.bodyResolved`.
+    func accentBodyText(_ role: LCHue) -> some View {
+        foregroundColor(LCColor.bodyResolved(role))
+    }
+
+    /// A link on the full-bleed auth cover: the tertiary accent, plus the hard
+    /// shadow that separates it from the cover's own ground where the two are
+    /// too close (Past's pink-on-blue is 1.49:1).
+    func authCoverLink() -> some View {
+        foregroundColor(LCAuthCover.link)
+            .shadow(color: LCAuthCover.linkShadow ?? .clear, radius: 0, x: 1, y: 1)
+    }
+}
+
+struct AccentTextStyle: ViewModifier {
+    let role: LCHue
+
+    func body(content: Content) -> some View {
+        content
+            .foregroundColor(LCColor.resolved(role))
+            // `.clear` when no shadow is called for, so the modifier stays a
+            // single code path and Present picks up no shadow at all.
+            .shadow(color: LCColor.textShadow(for: role) ?? .clear,
+                    radius: 0, x: 1.5, y: 1.5)
     }
 }
 

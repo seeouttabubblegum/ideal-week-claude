@@ -16,11 +16,11 @@ struct SubscriptionRequiredView: View {
         VStack(spacing: 24) {
             Image(systemName: "lock.fill")
                 .font(.system(size: 60))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
 
             Text("SUBSCRIPTION REQUIRED")
                 .font(.hhSamuel(26))
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .multilineTextAlignment(.center)
 
             Text("Please subscribe to access The Ideal Week")
@@ -33,7 +33,7 @@ struct SubscriptionRequiredView: View {
                     showSubscriptionView = true
                 }
                 .buttonStyle(NeumorphicButtonStyle(
-                    tint: LCColor.deepPink, fill: LCColor.yellow,
+                    tint: LCColor.pink, fill: LCColor.yellow,
                     font: .manrope(17, .heavy)))
 
                 Button(action: {

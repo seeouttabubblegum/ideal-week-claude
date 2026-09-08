@@ -73,7 +73,7 @@ struct AddIdealPinView: View {
             Text("Confirm")
         }
         .buttonStyle(NeumorphicButtonStyle(
-            tint: viewModel.canConfirm() ? LCColor.deepPink : LCColor.textMuted,
+            tint: viewModel.canConfirm() ? LCColor.pink : LCColor.textMuted,
             fill: viewModel.canConfirm() ? LCColor.yellow : LCColor.surface,
             font: .manrope(18, .heavy)))
         .disabled(!viewModel.canConfirm())
@@ -104,14 +104,14 @@ struct AddIdealPinView: View {
             // Pink lock glyph in a raised circle (7i).
             Image(systemName: "lock")
                 .font(.system(size: 28, weight: .semibold))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
                 .frame(width: 66, height: 66)
                 .neuRaisedCircle(cssOffset: 5, cssBlur: 12)
                 .accessibilityHidden(true)
 
             Text("ENTER\nSECRET PIN")
                 .font(.hhSamuel(34))
-                .foregroundColor(LCColor.blue)
+                .accentText(.blue)
                 .multilineTextAlignment(.center)
                 .padding(.bottom, 8)
                 .accessibilityLabel("Enter Secret PIN")
@@ -281,7 +281,7 @@ struct AddIdealPinView: View {
                 if viewModel.showPinError {
                     Text(viewModel.pinErrorMessage)
                         .font(.manrope(12, .semibold))
-                        .foregroundColor(LCColor.deepPink)
+                        .accentText(.pink)
                         .padding(.horizontal)
                 }
             }
@@ -306,7 +306,7 @@ struct AddIdealPinView: View {
                         if viewModel.showReasonError {
                             Text("This field is mandatory")
                                 .font(.manrope(12, .semibold))
-                                .foregroundColor(LCColor.deepPink)
+                                .accentText(.pink)
                         }
                     }
                     .padding(.horizontal)
@@ -347,7 +347,7 @@ struct AddIdealPinView: View {
                 } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 15, weight: .bold))
-                        .foregroundColor(LCColor.pink)
+                        .accentText(.pink)
                 }
                 .buttonStyle(NeuCircleButtonStyle(diameter: 36))
                 .accessibilityLabel("Back")
@@ -380,7 +380,7 @@ struct AddIdealPinView: View {
                 if viewModel.showReasonError {
                     Text("This field is mandatory")
                         .font(.manrope(12, .semibold))
-                        .foregroundColor(LCColor.deepPink)
+                        .accentText(.pink)
                 }
             }
             .padding(.horizontal)

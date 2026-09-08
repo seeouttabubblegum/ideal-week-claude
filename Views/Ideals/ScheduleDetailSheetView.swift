@@ -138,7 +138,7 @@ struct ScheduleDetailSheetView: View {
         Text(title)
             .font(.hhSamuel(22))
             .textCase(.uppercase)
-            .foregroundColor(LCColor.deepPink)
+            .accentText(.pink)
             .padding(.leading, 24)
             .padding(.top, 20)
             .padding(.bottom, 8)
@@ -150,7 +150,7 @@ struct ScheduleDetailSheetView: View {
             Text("Schedule")
                 .font(.hhSamuel(38))
                 .textCase(.uppercase)
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
                 .padding(.horizontal, 56)
@@ -238,14 +238,15 @@ struct ScheduleDetailSheetView: View {
                             HStack(spacing: 10) {
                                 Image(systemName: "location.fill")
                                     .font(.system(size: 15, weight: .semibold))
+                                    .accentText(.pink)
                                 Text("Use current address")
                                     .font(.manrope(15, .heavy))
+                                    .accentText(.pink)
                                 if isResolvingLocation {
                                     ProgressView()
                                         .tint(LCColor.pink)
                                 }
                             }
-                            .foregroundColor(LCColor.pink)
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .padding(.horizontal, 16)
@@ -303,7 +304,7 @@ struct ScheduleDetailSheetView: View {
                         if let err = locationError {
                             Text(err)
                                 .font(.manrope(12, .medium))
-                                .foregroundColor(LCColor.deepPink)
+                                .accentText(.pink)
                         }
 
                         if addressForMaps != nil {
@@ -315,7 +316,7 @@ struct ScheduleDetailSheetView: View {
                                         Text("Apple Maps")
                                             .font(.manrope(12.5, .bold))
                                     }
-                                    .foregroundColor(LCColor.blue)
+                                    .accentText(.blue)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 11)
                                     .padding(.horizontal, 10)
@@ -329,7 +330,7 @@ struct ScheduleDetailSheetView: View {
                                         Text("Google Maps")
                                             .font(.manrope(12.5, .bold))
                                     }
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                                     .frame(maxWidth: .infinity)
                                     .padding(.vertical, 11)
                                     .padding(.horizontal, 10)

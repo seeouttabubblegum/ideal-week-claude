@@ -15,9 +15,9 @@ struct LCPaletteSwatchRow: View {
     let options: [Color]
 
     /// Theme accents from the handoff palette.
-    static let themeOptions: [Color] = [LCColor.pink, LCColor.deepPink, LCColor.blue, LCColor.yellow]
+    static let themeOptions: [Color] = [LCColor.pink, LCColor.pink, LCColor.blue, LCColor.yellow]
     /// Ink options for body text.
-    static let textOptions: [Color] = [LCColor.ink, LCColor.deepPink, LCColor.blue]
+    static let textOptions: [Color] = [LCColor.ink, LCColor.pink, LCColor.blue]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {

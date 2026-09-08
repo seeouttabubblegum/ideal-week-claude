@@ -49,7 +49,7 @@ struct OnboardingSettingsView: View {
                     Text("Set Up Your\nPreferences")
                         .font(.hhSamuel(34))
                         .textCase(.uppercase)
-                        .foregroundColor(LCColor.blue)
+                        .accentText(.blue)
                         .padding(.horizontal, 24)
                         .padding(.top, 20)
 
@@ -83,7 +83,7 @@ struct OnboardingSettingsView: View {
                                     Image(systemName: "chevron.up.chevron.down")
                                         .font(.system(size: 12, weight: .bold))
                                 }
-                                .foregroundColor(LCColor.pink)
+                                .accentText(.pink)
                             }
                             .padding(.horizontal, 18)
                             .neuGroupedRow()
@@ -111,7 +111,7 @@ struct OnboardingSettingsView: View {
                     Text("Notification Settings")
                         .font(.hhSamuel(23))
                         .textCase(.uppercase)
-                        .foregroundColor(LCColor.deepPink)
+                        .accentText(.pink)
                         .padding(.horizontal, 24)
                         .padding(.top, 22)
                         .padding(.bottom, 8)
@@ -120,7 +120,7 @@ struct OnboardingSettingsView: View {
                         HStack(spacing: 12) {
                             Image(systemName: "clock")
                                 .font(.system(size: 17, weight: .medium))
-                                .foregroundColor(LCColor.blue)
+                                .accentText(.blue)
                             Text("Notification Time")
                                 .font(.manrope(16, .heavy))
                                 .foregroundColor(LCColor.ink)
@@ -138,7 +138,7 @@ struct OnboardingSettingsView: View {
                             .overlay {
                                 Text(formatTime(notificationTime))
                                     .font(.manrope(16, .semibold))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                                     .background(LCColor.surface)
                                     .allowsHitTesting(false)
@@ -155,7 +155,7 @@ struct OnboardingSettingsView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "bell")
                                     .font(.system(size: 17, weight: .medium))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                                 Text("Daily Notifications")
                                     .font(.manrope(16, .heavy))
                                     .foregroundColor(LCColor.ink)
@@ -171,7 +171,7 @@ struct OnboardingSettingsView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "calendar")
                                     .font(.system(size: 17, weight: .medium))
-                                    .foregroundColor(LCColor.blue)
+                                    .accentText(.blue)
                                 Text("Weekly Notifications")
                                     .font(.manrope(16, .heavy))
                                     .foregroundColor(LCColor.ink)
@@ -189,7 +189,7 @@ struct OnboardingSettingsView: View {
                     } label: {
                         Text("Save & Continue")
                     }
-                    .buttonStyle(NeumorphicButtonStyle(tint: LCColor.deepPink,
+                    .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink,
                                                        fill: LCColor.yellow,
                                                        verticalPadding: 17,
                                                        font: .manrope(18, .heavy)))

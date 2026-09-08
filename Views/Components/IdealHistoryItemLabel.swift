@@ -49,7 +49,7 @@ struct IdealHistoryItemLabel: View {
                 .foregroundColor(LCColor.contrastingInk(on: LCColor.pink))
                 .padding(.horizontal, 8)
                 .padding(.vertical, 3)
-                .background(Capsule().fill(LCColor.pinkFill))
+                .background(Capsule().fill(LCColor.pink))
                 .padding(8)
         }
     }
@@ -73,7 +73,7 @@ struct IdealHistoryItemLabel: View {
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
-                        .foregroundColor(LCColor.blue)
+                        .accentText(.blue)
                         .frame(width: 26, height: 26)
                 }
             }

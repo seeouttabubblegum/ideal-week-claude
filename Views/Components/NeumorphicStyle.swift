@@ -135,15 +135,17 @@ struct NeumorphicCompletionDot: View {
         let dark: Color = {
             switch state {
             case .empty: return LCColor.shadowDark
-            case .completed: return LCColor.dotPinkDark
-            case .overCompleted: return LCColor.blue.darker(0.18)
+            case .completed: return LCColor.pink
+            // Neutral, not a shade of the accent: the palette has three colours
+            // and none of them is a darker blue.
+            case .overCompleted: return Color.black.opacity(0.22)
             }
         }()
         let light: Color = {
             switch state {
             case .empty: return LCColor.shadowLight
-            case .completed: return LCColor.dotPinkLight
-            case .overCompleted: return LCColor.blue.lighter(0.25)
+            case .completed: return LCColor.pink
+            case .overCompleted: return Color.white.opacity(0.45)
             }
         }()
         let off = max(1.2, size * 0.11)
@@ -357,16 +359,16 @@ struct NeuCheckSaveButton: View {
         Button(action: action) {
             Image(systemName: "checkmark")
                 .font(.system(size: diameter * 0.38, weight: .heavy))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
         }
         .buttonStyle(NeuCircleButtonStyle(fill: LCColor.yellow, diameter: diameter))
         .overlay(alignment: .topTrailing) {
             if let count, count > 0 {
                 Text("\(count)")
                     .font(.manrope(12, .heavy))
-                    .foregroundColor(LCColor.pink)
+                    .accentText(.pink)
                     .frame(width: 22, height: 22)
-                    .background(Circle().fill(LCColor.blueFill))
+                    .background(Circle().fill(LCColor.blue))
                     .offset(x: 7, y: -7)
             }
         }
@@ -427,7 +429,7 @@ struct NeuStepper: View {
 
             Text(value == range.upperBound ? (maxLabel ?? "\(value)") : "\(value)")
                 .font(.manrope(16, .heavy))
-                .foregroundColor(LCColor.pink)
+                .accentText(.pink)
                 .frame(minWidth: 46)   // room for "6+" inside the pill
                 .padding(.vertical, 5)
                 .neuSunkenCapsule()
@@ -460,7 +462,7 @@ struct NeuToggleStyle: ToggleStyle {
             Spacer(minLength: 8)
             ZStack(alignment: configuration.isOn ? .trailing : .leading) {
                 if configuration.isOn {
-                    Capsule().fill(LCColor.pinkFill)
+                    Capsule().fill(LCColor.pink)
                         .shadow(color: LCColor.shadowDark, radius: 2, x: 2, y: 2)
                         .shadow(color: LCColor.shadowLight, radius: 2, x: -2, y: -2)
                 } else {
@@ -540,7 +542,7 @@ extension View {
                 .imprinted()
             Text("MY IDEAL WEEK")
                 .font(.hhSamuel(30))
-                .foregroundColor(LCColor.blue)
+                .accentText(.blue)
         }
         .padding(.vertical, 40)
     }

@@ -46,7 +46,7 @@ struct WishlistQuickAddSheet: View {
         VStack(alignment: .leading, spacing: 12) {
             Text(title)
                 .font(.hhSamuel(16))
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
             content()
         }
         .frame(maxWidth: .infinity, alignment: .leading)

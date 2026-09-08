@@ -428,7 +428,7 @@ struct CategoryReviewChartView: View {
                                     .foregroundColor(LCColor.textSecondary)
                                 Text(String(format: "%.2f", singleWeek.averageScore))
                                     .font(.manrope(30, .heavy))
-                                    .foregroundColor(LCColor.pink)
+                                    .accentText(.pink)
                             }
                             .frame(maxWidth: .infinity)
                             .frame(height: 300)
@@ -510,7 +510,7 @@ struct CategoryReviewChartView: View {
                                     Spacer()
                                     Text(String(format: "%.2f", idealData.averageScore))
                                         .font(.manrope(16, .heavy))
-                                        .foregroundColor(LCColor.pink)
+                                        .accentText(.pink)
                                 }
                                 .padding(.horizontal, 18)
                                 .padding(.vertical, 15)
@@ -550,7 +550,7 @@ struct CategoryReviewChartView: View {
                                                     .padding(.horizontal, 16)
                                                     .padding(.vertical, 9)
                                                     .neuRaised(cornerRadius: LCRadius.chip,
-                                                               fill: LCColor.pinkFill,
+                                                               fill: LCColor.pink,
                                                                cssOffset: LCNeumorphism.raisedOffsetSmall,
                                                                cssBlur: LCNeumorphism.raisedBlurSmall)
                                             } else {

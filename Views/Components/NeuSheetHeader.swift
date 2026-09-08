@@ -23,7 +23,7 @@ struct NeuSheetHeader: View {
             Text(title)
                 .font(.hhSamuel(titleSize))
                 .textCase(.uppercase)
-                .foregroundColor(LCColor.deepPink)
+                .accentText(.pink)
                 .lineLimit(1)
                 .minimumScaleFactor(0.5)
                 .multilineTextAlignment(.center)
