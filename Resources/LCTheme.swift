@@ -38,7 +38,9 @@ enum LCColor {
 
     /// The role's colour, but never the unreadable one — that gives way to pink
     /// rather than ink. See `LCPalette.chromatic(_:)`.
-    static func chromatic(_ role: LCHue) -> Color { palette.chromatic(role) }
+    static func chromatic(_ role: LCHue, fallback: LCHue = .pink) -> Color {
+        palette.chromatic(role, fallback: fallback)
+    }
 
     /// The hard offset shadow that keeps an accent readable when the palette has
     /// handed that role a colour too light to stand on its own — nil when it

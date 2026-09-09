@@ -637,51 +637,31 @@ struct HistoryProgressView: View {
         }.count
     }
     
+    /// This week's average for a category.
+    ///
+    /// Every ideal in the category is considered, not only those that STARTED
+    /// this week. The old version narrowed to `currentWeekIdeals` on top of
+    /// filtering the scores by date, so reviewing an ideal carried over from an
+    /// earlier week left the row showing a dash — the ideal was dropped before
+    /// its score was ever looked at. Ideals persist across weeks, so that was
+    /// the common case, not an edge one.
     private func currentWeekAverageReviewScore(for category: Category) -> Double? {
         let (start, end) = currentWeekDateRange
-        
-        // Get all current week ideals for this category
-        let categoryIdeals = currentWeekIdeals.filter { $0.category == category.rawValue }
-        var allScores: [Int] = []
-        
-        for ideal in categoryIdeals {
-            if let scores = categoryReviewScores[ideal.id] {
-                // Filter review scores from current week using ReviewScore.date
-                let currentWeekScores = scores.filter { score in
-                    score.date >= start && score.date <= end
-                }
-                allScores.append(contentsOf: currentWeekScores.map { $0.score })
-            }
-        }
-        
-        guard !allScores.isEmpty else { return nil }
-        
-        // Sum of all review scores divided by total number of reviews
-        let totalScore = allScores.reduce(0, +)
-        return Double(totalScore) / Double(allScores.count)
+        return CategoryReviewAverage.average(
+            idealIds: allIdeals.filter { $0.category == category.rawValue }.map(\.id),
+            scoresByIdeal: categoryReviewScores,
+            from: start, to: end)
     }
     
+    /// Last week's average. Unused today, but kept alongside its sibling and
+    /// sharing the same calculation so the two cannot drift apart again — that
+    /// drift is what produced the bug above.
     private func lastWeekAverageReviewScore(for category: Category) -> Double? {
         let (start, end) = lastWeekDateRange
-        
-        // Get all review scores for ideals in this category from last week
-        let categoryIdeals = allIdeals.filter { $0.category == category.rawValue }
-        var allScores: [Int] = []
-        
-        for ideal in categoryIdeals {
-            if let scores = categoryReviewScores[ideal.id] {
-                // Filter review scores from last week using ReviewScore.date
-                let lastWeekScores = scores.filter { score in
-                    score.date >= start && score.date <= end
-                }
-                allScores.append(contentsOf: lastWeekScores.map { $0.score })
-            }
-        }
-        
-        guard !allScores.isEmpty else { return nil }
-        
-        let totalScore = allScores.reduce(0, +)
-        return Double(totalScore) / Double(allScores.count)
+        return CategoryReviewAverage.average(
+            idealIds: allIdeals.filter { $0.category == category.rawValue }.map(\.id),
+            scoresByIdeal: categoryReviewScores,
+            from: start, to: end)
     }
     
     // Fetch review scores for all ideals

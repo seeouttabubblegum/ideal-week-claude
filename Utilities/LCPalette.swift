@@ -135,9 +135,12 @@ enum LCPalette: String, CaseIterable, Identifiable {
     /// For places that must stay chromatic rather than turn black: long-form
     /// copy (a whole paragraph in ink loses the accent entirely) and the voice
     /// button beside the title field. Still one of the three, still full strength.
-    func chromatic(_ role: LCHue) -> Color {
+    /// - Parameter fallback: which colour steps in when the role's own cannot be
+    ///   read. Pink for body copy and the voice button; blue for the how-often
+    ///   slider, where black read as heavy against the neumorphic track.
+    func chromatic(_ role: LCHue, fallback: LCHue = .pink) -> Color {
         let family = hue(for: role)
-        return Color(hex: hex(needsShadow(family) ? .pink : family))
+        return Color(hex: hex(needsShadow(family) ? fallback : family))
     }
 
     // MARK: - The full-bleed auth cover
