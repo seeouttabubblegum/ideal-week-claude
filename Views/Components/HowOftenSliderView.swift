@@ -50,9 +50,14 @@ struct HowOftenSliderView: View {
                         .onChanged { drag in
                             let stop = HowOftenSlider.value(atX: drag.location.x, width: width)
                             guard stop != value else { return }
+                            hideKeyboard()
                             HapticFeedback.impact(style: .light)
                             withAnimation(.interactiveSpring()) { value = stop }
                         }
+                        // Catches a tap that lands on the stop the knob is already
+                        // on: no movement, but the user still reached past the
+                        // title field.
+                        .onEnded { _ in hideKeyboard() }
                 )
             }
             .frame(height: 44)
@@ -62,6 +67,7 @@ struct HowOftenSliderView: View {
             GeometryReader { geometry in
                 ForEach(1...HowOftenSlider.stopCount, id: \.self) { stop in
                     Button {
+                        hideKeyboard()
                         HapticFeedback.impact(style: .medium)
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             value = stop

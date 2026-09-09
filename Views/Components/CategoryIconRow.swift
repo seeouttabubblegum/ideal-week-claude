@@ -34,6 +34,8 @@ struct CategoryIconRow: View {
         let isSelected = selection == category.rawValue
         return Button {
             HapticFeedback.impact(style: .light)
+            // Reaching the category row means the title is finished being typed.
+            hideKeyboard()
             selection = category.rawValue
         } label: {
             Image(category.lcCategoryIconV2())

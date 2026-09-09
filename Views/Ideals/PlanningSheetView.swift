@@ -870,9 +870,7 @@ struct PlanningSheetView: View {
 
     /// Resigns the first responder so any focused field (e.g. the new-ideal
     /// title) closes its keyboard — used for tap-off-to-dismiss.
-    private func hideKeyboard() {
-        UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
-    }
+
 
     /// Save control for Missed Anything? — yellow raised check with a blue/pink
     /// count badge of items being saved (handoff 1f).
