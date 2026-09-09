@@ -40,7 +40,10 @@ struct HowOftenSliderView: View {
                                height: HowOftenSlider.knobDiameter)
                         .shadow(color: LCColor.shadowDark, radius: 3.5, x: 3, y: 3)
                         .shadow(color: LCColor.shadowLight, radius: 3.5, x: -3, y: -3)
-                        .overlay(Circle().fill(LCColor.pink).frame(width: 14, height: 14))
+                        // On the knob's own surface fill, so it follows the same
+                        // rule as any glyph there: the accent while it reads, ink
+                        // when the palette hands this role the too-light colour.
+                        .overlay(Circle().fill(LCColor.glyph(.pink)).frame(width: 14, height: 14))
                         .offset(x: thumbX - HowOftenSlider.knobDiameter / 2)
                 }
                 .frame(maxHeight: .infinity)
@@ -75,7 +78,7 @@ struct HowOftenSliderView: View {
                     } label: {
                         Text(HowOftenSlider.label(for: stop))
                             .font(.manrope(14, value == stop ? .heavy : .medium))
-                            .foregroundColor(value == stop ? LCColor.pink : LCColor.textSecondary)
+                            .foregroundColor(value == stop ? LCColor.glyph(.pink) : LCColor.textSecondary)
                             .frame(width: HowOftenSlider.knobDiameter, height: 28)
                             .contentShape(Rectangle())
                     }

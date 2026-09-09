@@ -66,16 +66,10 @@ struct IdealHistoryItemLabel: View {
                     .foregroundColor(LCColor.ink)
                     .imprinted()
                 Spacer()
-                if let category = Category(rawValue: item.category) {
-                    // LC line icon, template-tinted blue (handoff history cards
-                    // render the line asset, never an SF-symbol stand-in).
-                    Image(category.lcCategoryIconV2())
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .accentText(.blue)
-                        .frame(width: 26, height: 26)
-                }
+                // No category icon here: this list is already filtered to one
+                // category by the tab bar above it, so the icon repeated the
+                // same fact on every row. The weekly recap's list dropped it
+                // for the same reason.
             }
             FlowLayout(alignment: .leading, horizontalSpacing: 6, verticalSpacing: 8) {
                 if item.doneCount >= intTargetState {

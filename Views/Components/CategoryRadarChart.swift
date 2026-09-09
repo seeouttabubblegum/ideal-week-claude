@@ -15,11 +15,13 @@ import SwiftUI
 struct CategoryRadarChart: View {
     let axes: [RadarAxis]
 
-    // Computed, not `let`: a `static let` is initialised once per process and
-    // would freeze whichever palette was active the first time this chart was
-    // drawn. These are thin overlay outlines, so they take the ink tokens.
-    static var completionColor: Color { LCColor.pink } // completion overlay (primary accent)
-    static var reviewColor: Color { LCColor.blue }     // review overlay (secondary accent)
+    // Named COLOURS, not roles. As roles these rotated, and in the palettes
+    // where one of them landed on yellow the overlay vanished against the
+    // chart's light face — the one thing a radar cannot afford. Pink and blue
+    // are the two that read there, so the chart keeps them in every palette.
+    // (50s still greys them, since `brand` maps through the palette.)
+    static var completionColor: Color { LCColor.brand(.pink) }
+    static var reviewColor: Color { LCColor.brand(.blue) }
 
     @State private var selectedAxis: Int? = nil
 
@@ -29,13 +31,35 @@ struct CategoryRadarChart: View {
     /// standalone uses keep it below the chart.
     var showsLegend: Bool = true
 
+    /// How far beyond the radius the label ring sits. The sunken well behind the
+    /// grid is drawn at `radius + 10`, so anything less than that puts the text
+    /// on top of the chart itself.
+    static let rimLabelGap: CGFloat = 14
+
+    /// How far in from the view's edge the chart's rim has to sit.
+    ///
+    /// The two near-horizontal axes — Feelings on the right, Finance on the left,
+    /// both at cos ≈ ±0.975 — anchor their label OUTWARD from the rim, so the
+    /// whole word sits beyond the radius. At the old inset of 38 those two ran
+    /// past the edge of the Canvas and were clipped away entirely. The widest
+    /// label is measured at the real font rather than guessed, so adding a
+    /// longer category name later cannot silently clip it again.
+    static let rimInset: CGFloat = {
+        let font = UIFont(name: "H.H.Samuel-Regular", size: 13)
+            ?? UIFont.systemFont(ofSize: 13)
+        let widest = Category.allCases
+            .map { ($0.rawValue as NSString).size(withAttributes: [.font: font]).width }
+            .max() ?? 60
+        return rimLabelGap + widest + 4   // + a hair so the glyph edge never touches
+    }()
+
     var body: some View {
         VStack(spacing: 12) {
             GeometryReader { geo in
                 let geom = RadarGeometry(
                     size: geo.size,
                     axisCount: axes.count,
-                    inset: 38 // room for the category labels around the rim
+                    inset: Self.rimInset
                 )
                 ZStack {
                     // Sunken circular well behind the radial grid (radar backgrounds are SUNKEN).
@@ -130,9 +154,13 @@ struct CategoryRadarChart: View {
         .padding(.vertical, 6)
         .background(
             RoundedRectangle(cornerRadius: LCRadius.chip)
-                .fill(LCColor.surface)
-                .shadow(color: LCColor.shadowDark, radius: 3.5, x: 3, y: 3)
-                .shadow(color: LCColor.shadowLight, radius: 3.5, x: -3, y: -3)
+                // Barely there on purpose: this card lands in the middle of the
+                // chart, and opaque it blanked out the very overlays the reader
+                // tapped a category to compare. At 0.55 the grid and both
+                // overlays read straight through it. The neumorphic shadow pair goes with
+                // it — a raised card that you can see through reads as a
+                // contradiction, and the edge stroke below carries the shape.
+                .fill(LCColor.surface.opacity(0.55))
         )
         .overlay(RoundedRectangle(cornerRadius: LCRadius.chip).stroke(Neumorphic.edgeStroke))
         .fixedSize()
@@ -197,9 +225,15 @@ struct CategoryRadarChart: View {
     private func drawAxisLabels(context: GraphicsContext, geom: RadarGeometry) {
         for i in 0..<geom.axisCount {
             let lp = geom.labelPoint(axis: i)
-            let anchor: UnitPoint = abs(lp.x - geom.center.x) < 8
-                ? .center
-                : (lp.x < geom.center.x ? .trailing : .leading)
+            // Anchor OUTWARD, never centred on the ring. `.center` put half of
+            // each top/bottom label back inside the well it was meant to clear;
+            // anchoring the near edge of the text to the ring point pushes the
+            // whole word out of the chart area in every direction.
+            let dx = lp.x - geom.center.x
+            let dy = lp.y - geom.center.y
+            let anchor: UnitPoint = abs(dx) < 8
+                ? (dy < 0 ? .bottom : .top)
+                : (dx < 0 ? .trailing : .leading)
             context.draw(
                 Text(axes[i].category.rawValue)
                     .font(.hhSamuel(13))
@@ -263,7 +297,7 @@ private struct RadarGeometry {
 
     func labelPoint(axis i: Int) -> CGPoint {
         let a = angle(i)
-        let r = radius + 18
+        let r = radius + CategoryRadarChart.rimLabelGap
         return CGPoint(x: center.x + r * cos(a), y: center.y + r * sin(a))
     }
 

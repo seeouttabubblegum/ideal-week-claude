@@ -151,6 +151,18 @@ struct HistoryProgressView: View {
                         // Week Progress Grid
                         weekProgressGrid
 
+                        // These scores are THIS WEEK's, but tapping a row opens the
+                        // all-time chart — so a category last reviewed weeks ago reads
+                        // "—" here and a real average there. Name the period so the two
+                        // stop looking like a contradiction.
+                        Text("This Week's Review Scores")
+                            .font(.hhSamuel(23))
+                            .textCase(.uppercase)
+                            .accentText(.pink)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(.horizontal, LCMetrics.screenMargin)
+                            .padding(.bottom, 6)
+
                         // Category rows (grouped neumorphic card, feathered dividers)
                         VStack(spacing: 0) {
                             // Category buttons with review scores

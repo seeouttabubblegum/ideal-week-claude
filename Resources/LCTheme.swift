@@ -32,9 +32,13 @@ enum LCColor {
     /// three accessors above; useful where the role arrives as a value.
     static func resolved(_ role: LCHue) -> Color { palette.resolved(role) }
 
-    /// The colour long-form copy takes for a role — the same three, but never
-    /// the one that would need the silhouette shadow. See `LCPalette.bodyResolved`.
-    static func bodyResolved(_ role: LCHue) -> Color { palette.bodyResolved(role) }
+    /// The brand colour itself, ignoring which role carries it. See
+    /// `LCPalette.colour(of:)`.
+    static func brand(_ family: LCHue) -> Color { palette.colour(of: family) }
+
+    /// The role's colour, but never the unreadable one — that gives way to pink
+    /// rather than ink. See `LCPalette.chromatic(_:)`.
+    static func chromatic(_ role: LCHue) -> Color { palette.chromatic(role) }
 
     /// The hard offset shadow that keeps an accent readable when the palette has
     /// handed that role a colour too light to stand on its own — nil when it
@@ -139,8 +143,18 @@ enum LCAuthCover {
 /// offset shadow that makes it legible without changing the colour itself.
 /// Use this anywhere an accent is the INK; plain fills keep `.foregroundColor`.
 extension View {
-    func accentText(_ role: LCHue) -> some View {
-        modifier(AccentTextStyle(role: role))
+    /// Text or a thin glyph in an accent.
+    ///
+    /// On the app surface, a colour that cannot be read there is not outlined or
+    /// darkened — the text is simply drawn in the app's ink instead. Yellow at
+    /// 1.04:1 has no version of itself that works on white, and a keyline around
+    /// every yellow word reads as noise once it is on more than a title.
+    ///
+    /// - Parameter backdrop: the ROLE whose colour sits behind this text, or nil
+    ///   for the surface. Text on a coloured fill keeps the design's own pairing:
+    ///   the category band wants its accent label, not black.
+    func accentText(_ role: LCHue, on backdrop: LCHue? = nil) -> some View {
+        modifier(AccentTextStyle(role: role, backdrop: backdrop))
     }
 }
 
@@ -149,7 +163,7 @@ extension View {
     /// would need the silhouette shadow — a whole paragraph wearing that shadow
     /// reads as outlined and heavy. See `LCPalette.bodyResolved`.
     func accentBodyText(_ role: LCHue) -> some View {
-        foregroundColor(LCColor.bodyResolved(role))
+        foregroundColor(LCColor.chromatic(role))
     }
 
     /// A link on the full-bleed auth cover: the tertiary accent, plus the hard
@@ -161,16 +175,59 @@ extension View {
     }
 }
 
-struct AccentTextStyle: ViewModifier {
+extension View {
+    /// Yellow type kept as yellow, with a thin keyline in a named brand colour.
+    ///
+    /// The one exception to the ink rule above: the "MY IDEAL WEEK" wordmark is
+    /// the app's signature, and turning it black in Past would cost more than
+    /// the keyline does. `outline` is a COLOUR, not a role — a role would rotate
+    /// with the text and could land on the same hue it is meant to separate from.
+    /// No keyline at all when the colour reads unaided, so Present is untouched.
+    func accentOutlinedText(_ role: LCHue, outline: LCHue, width: CGFloat = 1) -> some View {
+        modifier(AccentOutlinedTextStyle(role: role, outline: outline, width: width))
+    }
+}
+
+struct AccentOutlinedTextStyle: ViewModifier {
     let role: LCHue
+    let outline: LCHue
+    let width: CGFloat
+
+    private static let ring: [CGPoint] = [
+        CGPoint(x: -1, y: -1), CGPoint(x: 0, y: -1), CGPoint(x: 1, y: -1),
+        CGPoint(x: -1, y:  0),                       CGPoint(x: 1, y:  0),
+        CGPoint(x: -1, y:  1), CGPoint(x: 0, y:  1), CGPoint(x: 1, y:  1),
+    ]
 
     func body(content: Content) -> some View {
-        content
-            .foregroundColor(LCColor.resolved(role))
-            // `.clear` when no shadow is called for, so the modifier stays a
-            // single code path and Present picks up no shadow at all.
-            .shadow(color: LCColor.textShadow(for: role) ?? .clear,
-                    radius: 0, x: 1.5, y: 1.5)
+        let colour = LCColor.resolved(role)
+        if LCColor.textShadow(for: role) != nil {
+            let keyline = LCColor.brand(outline)
+            return AnyView(
+                ZStack {
+                    ForEach(Self.ring, id: \.self) { point in
+                        content
+                            .foregroundColor(keyline)
+                            .offset(x: point.x * width, y: point.y * width)
+                    }
+                    content.foregroundColor(colour)
+                }
+            )
+        }
+        return AnyView(content.foregroundColor(colour))
+    }
+}
+
+struct AccentTextStyle: ViewModifier {
+    let role: LCHue
+    var backdrop: LCHue? = nil
+
+    func body(content: Content) -> some View {
+        // On a coloured fill the pairing is the design's to make. Only on the
+        // surface does an unreadable accent give way to ink.
+        let unreadableOnSurface = backdrop == nil && LCColor.textShadow(for: role) != nil
+        return content.foregroundColor(unreadableOnSurface ? LCColor.ink
+                                                           : LCColor.resolved(role))
     }
 }
 

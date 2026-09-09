@@ -89,17 +89,11 @@ struct TopIdealsHistorySection: View {
 
             dateRangeFilter
 
-            categoryTabBar
+            CategoryTabBar(selection: $selectedCategory)
                 .padding(.top, 16)
 
             // Selected category's name — under the tabs, right above its data.
-            Text(selectedCategory.rawValue)
-                .font(.hhSamuel(20))
-                .textCase(.uppercase)
-                .accentText(.pink)
-                .frame(maxWidth: .infinity)
-                .padding(.top, 12)
-                .animation(nil, value: selectedCategory)
+            CategoryTabBarSelectionLabel(selection: selectedCategory)
 
             categoryContent
         }
@@ -137,57 +131,6 @@ struct TopIdealsHistorySection: View {
                 accentColor: accentColor
             )
         }
-    }
-
-    private var categoryTabBar: some View {
-        // Category filter chips — selected = raised pink, unselected = sunken.
-        // Each chip takes an equal share of the row (maxWidth: .infinity) so all
-        // seven fit the screen width on every device (client, 2026-09-02).
-        // Fixed 16pt side padding + 14pt gaps previously summed to ~462pt on a
-        // 402pt screen, which is why this used to need a horizontal scroll.
-        HStack(spacing: 6) {
-            ForEach(Category.allCases, id: \.id) { cat in
-                let isSelected = selectedCategory == cat
-                Button {
-                    HapticFeedback.selection()
-                    withAnimation { selectedCategory = cat }
-                } label: {
-                    // Icon-only chip (client, 2026-08-28) — the selected
-                    // category's name renders once, under the tab bar. LC v2
-                    // icon set as before, template-tinted.
-                    Image(cat.lcCategoryIconV2())
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 20, height: 20)
-                    .foregroundColor(isSelected ? LCColor.contrastingInk(on: LCColor.pink) : LCColor.ink)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(
-                        Group {
-                            if isSelected {
-                                RoundedRectangle(cornerRadius: LCRadius.chip, style: .continuous)
-                                    .fill(LCColor.pink)
-                                    .shadow(color: LCColor.shadowDark, radius: 3.5, x: 3, y: 3)
-                                    .shadow(color: LCColor.shadowLight, radius: 3.5, x: -3, y: -3)
-                            } else {
-                                RoundedRectangle(cornerRadius: LCRadius.chip, style: .continuous)
-                                    .fill(
-                                        LCColor.surface
-                                            .shadow(.inner(color: LCColor.shadowDark, radius: 3, x: 3, y: 3))
-                                            .shadow(.inner(color: LCColor.shadowLight, radius: 3, x: -3, y: -3))
-                                    )
-                            }
-                        }
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(cat.rawValue)
-                .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-            }
-        }
-        .padding(.horizontal, LCMetrics.screenMargin)
-        .padding(.vertical, 8)
     }
 
     @ViewBuilder

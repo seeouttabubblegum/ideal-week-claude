@@ -19,9 +19,9 @@ struct StatWellsCard<Caption: View>: View {
     var body: some View {
         VStack(spacing: 0) {
             HStack(spacing: 12) {
-                StatWell(value: idealsValue, label: idealsLabel, color: LCColor.pink)
+                StatWell(value: idealsValue, label: idealsLabel, role: .pink)
                 PropelArrow()
-                StatWell(value: actionsValue, label: actionsLabel, color: LCColor.blue)
+                StatWell(value: actionsValue, label: actionsLabel, role: .blue)
             }
             caption()
         }
@@ -43,13 +43,17 @@ extension StatWellsCard where Caption == EmptyView {
 struct StatWell: View {
     let value: Int
     let label: String
-    let color: Color
+    /// The ROLE, not a fixed colour: whichever of the three a palette hands this
+    /// well decides whether the count needs its outline. Passing a `Color` was
+    /// why this count stayed unreadable — it never reached the palette's own
+    /// legibility rule.
+    let role: LCHue
 
     var body: some View {
         VStack(spacing: 3) {
             Text(value.formatted())
                 .font(.lcTitle(34))
-                .foregroundColor(color)
+                .accentText(role)
                 .lineLimit(1)
                 .minimumScaleFactor(0.6)
             Text(label)
@@ -70,13 +74,18 @@ struct StatWell: View {
 /// not competition).
 struct PropelArrow: View {
     var body: some View {
-        HStack(spacing: 1) {
+        // All three take the SAME colour, only the opacity ramps. The first two
+        // used the raw accent while the third went through the legibility rule,
+        // so in a palette whose primary is the unreadable one you got two faint
+        // yellow chevrons and one black.
+        let chevron = LCColor.glyph(.pink)
+        return HStack(spacing: 1) {
             Image(systemName: "chevron.right")
-                .foregroundColor(LCColor.pink.opacity(0.42))
+                .foregroundColor(chevron.opacity(0.42))
             Image(systemName: "chevron.right")
-                .foregroundColor(LCColor.pink.opacity(0.7))
+                .foregroundColor(chevron.opacity(0.7))
             Image(systemName: "chevron.right")
-                .accentText(.pink)
+                .foregroundColor(chevron)
         }
         .font(.system(size: 15, weight: .bold))
         .accessibilityHidden(true)

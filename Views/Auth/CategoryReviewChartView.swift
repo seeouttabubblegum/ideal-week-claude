@@ -123,6 +123,15 @@ struct CategoryReviewChartView: View {
         return Calendar.current.date(byAdding: .day, value: 6, to: start) ?? date
     }
     
+    /// Which empty state, if any, this screen should show. See
+    /// `CategoryChartEmptyState` — the old inline condition suppressed the
+    /// message for a category with no ideals and left the screen blank.
+    private var emptyState: CategoryChartEmptyState {
+        CategoryChartEmptyState.resolve(isDataReady: isDataReady,
+                                        weeklyAverageCount: weeklyCategoryAverages.count,
+                                        categoryIdealCount: categoryIdeals.count)
+    }
+
     // Calculate weekly category averages
     private var weeklyCategoryAverages: [WeeklyCategoryData] {
         // Get all review scores for all ideals in this category
@@ -420,7 +429,11 @@ struct CategoryReviewChartView: View {
                 VStack(spacing: 16) {
                     // Chart or single-value average
                     ZStack {
-                        if isDataReady && weeklyCategoryAverages.count == 1, let singleWeek = weeklyCategoryAverages.first {
+                        if emptyState != .none {
+                            // Nothing to plot. The empty state below carries the
+                            // screen, so don't reserve 300pt for a blank chart.
+                            EmptyView()
+                        } else if isDataReady && weeklyCategoryAverages.count == 1, let singleWeek = weeklyCategoryAverages.first {
                             // Single value: show "Average Score:" instead of chart
                             VStack(spacing: 12) {
                                 Text("Average Score:")
@@ -455,17 +468,47 @@ struct CategoryReviewChartView: View {
                         }
                     }
 
-                    // Show "no data" message if needed
-                    if isDataReady && weeklyCategoryAverages.isEmpty && !categoryIdeals.isEmpty {
+                    // Two empty states, not one. The old condition also required
+                    // `!categoryIdeals.isEmpty`, so a category the user had never
+                    // added an ideal to showed NOTHING: an empty chart above and a
+                    // suppressed message here — a blank screen.
+                    if emptyState != .none {
                         VStack(spacing: 12) {
-                            Image(systemName: "chart.line.downtrend.xyaxis")
-                                .font(.system(size: 40))
-                                .foregroundColor(LCColor.textMuted)
-                            Text("No review scores found for this period")
-                                .font(.manrope(16, .semibold))
-                                .foregroundColor(LCColor.textSecondary)
+                            if emptyState == .noIdeals {
+                                Image(category.lcCategoryIconV2())
+                                    .resizable()
+                                    .renderingMode(.template)
+                                    .scaledToFit()
+                                    .frame(width: 40, height: 40)
+                                    .foregroundColor(LCColor.textMuted)
+                                // `categoryIdeals` is already narrowed by `dateRange`
+                                // when one was passed, so "yet" would be a lie there:
+                                // the user may well have ideals in this category, just
+                                // not in the week being shown.
+                                Text(dateRange == nil
+                                     ? "No \(category.rawValue) ideals yet"
+                                     : "No \(category.rawValue) ideals in this period")
+                                    .font(.manrope(16, .semibold))
+                                    .foregroundColor(LCColor.textSecondary)
+                                if dateRange == nil {
+                                    Text("Add one from My Ideals and its review scores will show up here.")
+                                        .font(.manrope(13, .medium))
+                                        .foregroundColor(LCColor.textMuted)
+                                        .multilineTextAlignment(.center)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            } else {
+                                Image(systemName: "chart.line.downtrend.xyaxis")
+                                    .font(.system(size: 40))
+                                    .foregroundColor(LCColor.textMuted)
+                                Text("No review scores found for this period")
+                                    .font(.manrope(16, .semibold))
+                                    .foregroundColor(LCColor.textSecondary)
+                            }
                         }
-                        .padding(.vertical, 20)
+                        .frame(maxWidth: .infinity)
+                        .padding(.horizontal, LCMetrics.screenMargin)
+                        .padding(.vertical, 40)
                     }
 
                     // Ideal list sorted by average score — grouped neumorphic card

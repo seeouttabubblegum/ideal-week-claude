@@ -134,7 +134,8 @@ struct TopNav: View {
                         HStack(spacing: 6) {
                             Text("NEXT")
                                 .font(.manrope(15, .heavy))
-                                .accentText(.pink)
+                                // Sits ON the tertiary-role NEXT pill.
+                                .accentText(.pink, on: .yellow)
                                 .lineLimit(1)
                                 .fixedSize()
                             Image("Next Puzzle_Blue")
@@ -195,7 +196,7 @@ struct TopNav: View {
             HStack(alignment: .center, spacing: 4) {
                 Text("MY")
                     .font(.hhSamuel(58))
-                    .accentText(.blue)
+                    .accentOutlinedText(.blue, outline: .blue, width: 1.2)
                     .accessibilityLabel("My Ideal Week")
                 if userId != nil, !progressRings.isEmpty {
                     Button {
@@ -216,11 +217,11 @@ struct TopNav: View {
             }
             Text("IDEAL")
                 .font(.hhSamuel(58))
-                .accentText(.blue)
+                .accentOutlinedText(.blue, outline: .blue, width: 1.2)
                 .accessibilityHidden(true)
             Text("WEEK")
                 .font(.hhSamuel(58))
-                .accentText(.blue)
+                .accentOutlinedText(.blue, outline: .blue, width: 1.2)
                 .accessibilityHidden(true)
         }
     }

@@ -734,8 +734,13 @@ struct PlanningSheetView: View {
         VStack(spacing: 0) {
             sheetHeader("Missed Anything?") {
                 if !showOnlyMissedAnythingStep {
-                    // Back — rendered as the standard close-style button (handoff 1f)
-                    NeuCloseButton {
+                    // This walks BACK through the planning steps — wishlist, then
+                    // the again-lists — and only dismisses when there is no step
+                    // left behind it. It wore the close glyph, which is what every
+                    // other leading control in this sheet means when it is a real
+                    // dismiss; the chevron matches Next and More, which do the same
+                    // thing.
+                    NeuBackCircleButton {
                         withAnimation {
                             if weeklyPromptWithExistingPlan {
                                 if wishlistIdeals.isEmpty {

@@ -95,18 +95,30 @@ enum LCPalette: String, CaseIterable, Identifiable {
         Color(hex: hex(hue(for: role)))
     }
 
+    /// The brand colour itself, ignoring which role currently carries it.
+    /// Only for the few places the design names a COLOUR rather than a role —
+    /// the wordmark's blue keyline. In 50s this is that colour's grey.
+    func colour(of family: LCHue) -> Color { Color(hex: hex(family)) }
+
     // MARK: - Keeping the lightest colour readable
 
     /// Yellow is far too light to read as text: against the app surface it
     /// manages 1.04:1, where pink reaches 2.97 and blue 1.99. Rather than darken
     /// it — which would make it a different colour, and no longer the brand's —
-    /// yellow type is given a hard offset shadow in blue, exactly the treatment
-    /// the login cover's subtitle has always used. This returns that shadow
-    /// colour, or nil when the role's colour reads on its own.
+    /// yellow type is outlined in the app's own ink. Ink is not a brand colour,
+    /// but it is not a shade or tint of one either: it has the same standing
+    /// here as it does in `contrastingInk(on:)`, where it is already the
+    /// foreground the design puts on top of yellow.
+    ///
+    /// It is also far and away the strongest of the three candidates tried —
+    /// 11.87:1 against the yellow it outlines and 12.39:1 against the surface
+    /// behind it, where pink managed 2.84 / 2.97 and blue only 1.91 / 1.99.
+    ///
+    /// Returns nil when the role's colour reads on its own.
     func textShadow(for role: LCHue) -> Color? {
         let family = hue(for: role)
         guard needsShadow(family) else { return nil }
-        return Color(hex: hex(Self.shadowPartner(family)))
+        return LCColor.ink
     }
 
     /// Measured against the surface 0xF0F0F5: only yellow falls below 1.5:1.
@@ -117,21 +129,13 @@ enum LCPalette: String, CaseIterable, Identifiable {
         self != .fifties && family == .yellow
     }
 
-    /// Yellow borrows blue's silhouette. The other two are listed for
-    /// completeness; neither is light enough to ever ask.
-    static func shadowPartner(_ family: LCHue) -> LCHue {
-        switch family {
-        case .yellow: return .blue
-        case .blue:   return .pink
-        case .pink:   return .blue
-        }
-    }
-
-    /// Long-form copy. A whole paragraph wearing the silhouette shadow reads as
-    /// outlined and heavy, so where a palette would hand this role the colour
-    /// that needs the shadow, body text takes the pink instead. Still one of the
-    /// three, still at full strength.
-    func bodyResolved(_ role: LCHue) -> Color {
+    /// The role's colour, except never the one that cannot be read on the
+    /// surface — that one gives way to PINK rather than to ink.
+    ///
+    /// For places that must stay chromatic rather than turn black: long-form
+    /// copy (a whole paragraph in ink loses the accent entirely) and the voice
+    /// button beside the title field. Still one of the three, still full strength.
+    func chromatic(_ role: LCHue) -> Color {
         let family = hue(for: role)
         return Color(hex: hex(needsShadow(family) ? .pink : family))
     }

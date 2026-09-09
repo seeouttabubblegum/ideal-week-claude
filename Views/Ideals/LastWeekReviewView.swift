@@ -293,56 +293,6 @@ struct LastWeekReviewView: View {
     /// Category tabs as neumorphic chips — selected raised in pink, the rest in
     /// sunken wells (same rule as the reminder day chips). No flat fills, no
     /// hard grey hairlines.
-    private var categoryTabBar: some View {
-        HStack(spacing: 10) {
-            ForEach(Category.allCases, id: \.id) { cat in
-                let isSelected = self.selectedCategory == cat
-                let label = HStack(spacing: 8) {
-                    // LC category icon, v2 set (template-tinted, robust to missing tints)
-                    Image(cat.lcCategoryIconV2())
-                        .renderingMode(.template)
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 17, height: 17)
-                    Text(cat.rawValue)
-                        .font(.manrope(16, .heavy))
-                }
-                .foregroundColor(isSelected ? LCColor.contrastingInk(on: LCColor.pink) : LCColor.textSecondary)
-                .frame(width: Self.maxTabWidth, height: 46)
-
-                Button {
-                    HapticFeedback.selection()
-                    self.selectedCategory = cat
-                } label: {
-                    Group {
-                        if isSelected {
-                            label.neuRaised(cornerRadius: LCRadius.chip,
-                                            fill: LCColor.pink,
-                                            cssOffset: LCNeumorphism.raisedOffsetSmall,
-                                            cssBlur: LCNeumorphism.raisedBlurSmall)
-                        } else {
-                            label.neuSunken(cornerRadius: LCRadius.chip)
-                        }
-                    }
-                    .contentShape(RoundedRectangle(cornerRadius: LCRadius.chip, style: .continuous))
-                }
-                .buttonStyle(.plain)
-                .accessibilityAddTraits(isSelected ? [.isSelected] : [])
-            }
-        }
-        .padding(.horizontal, LCMetrics.screenMargin)
-        .padding(.vertical, 8)
-    }
-
-    private static let maxTabWidth: CGFloat = {
-        let font = UIFont(name: "Manrope-ExtraBold", size: 16) ?? UIFont.systemFont(ofSize: 16)
-        var maxWidth: CGFloat = 0
-        for category in Category.allCases {
-            let size = (category.rawValue as NSString).size(withAttributes: [.font: font])
-            maxWidth = max(maxWidth, size.width)
-        }
-        return maxWidth + 60
-    }()
     
     @ViewBuilder
     private var categoryContent: some View {
@@ -394,7 +344,11 @@ struct LastWeekReviewView: View {
                             onTap: {
                                 itemToView = item
                                 viewModel.showingDetailView = true
-                            }
+                            },
+                            // The tab bar above already says which category this
+                            // is, so the per-row icon is noise — the main ideals
+                            // list drops it for the same reason.
+                            showCategoryIcon: false
                         )
                         .offset(x: self.itemOffsets[item.id] ?? 0)
                         .overlay {
@@ -853,11 +807,13 @@ struct LastWeekReviewView: View {
                 .padding(.top, 20)
                 .padding(.bottom, 8)
             
-            ScrollView(.horizontal, showsIndicators: false) {
-                categoryTabBar
-            }
-            .padding(.top, 16)
-            
+            // Same control as the Profile page's Top Ideals browser: icon-only
+            // chips that share the width, so no horizontal scroll, with the
+            // chosen category named once underneath.
+            CategoryTabBar(selection: $selectedCategory)
+                .padding(.top, 16)
+
+            CategoryTabBarSelectionLabel(selection: selectedCategory)
             categoryContent
         }
     }

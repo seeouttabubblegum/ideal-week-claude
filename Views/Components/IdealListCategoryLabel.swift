@@ -44,7 +44,8 @@ struct IdealListCategoryLabel: View {
             Text(cat.rawValue.uppercased())
                 .font(.hhSamuel(31))
                 .kerning(0.5)
-                .accentText(.blue)
+                // Sits ON the primary-role band, not the surface.
+                .accentText(.blue, on: .pink)
                 .accessibilityAddTraits(.isHeader)
 
             Spacer()
