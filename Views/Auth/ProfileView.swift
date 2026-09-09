@@ -112,6 +112,10 @@ struct ProfileView: View {
                     }) {
                         Image("Line Edit_Pink")
                             .resizable()
+                            // Templated: baked pink on a tertiary-role fill meant
+                            // that in Past the pencil was pink on pink.
+                            .renderingMode(.template)
+                            .foregroundColor(LCColor.glyph(.pink, onFill: .yellow))
                             .scaledToFit()
                             .frame(width: 19, height: 19)
                     }
@@ -133,7 +137,7 @@ struct ProfileView: View {
                 }) {
                     Image(systemName: "rectangle.portrait.and.arrow.right")
                         .font(.system(size: 18, weight: .semibold))
-                        .accentText(.pink)
+                        .foregroundColor(LCColor.glyph(.pink))
                 }
                 .buttonStyle(NeuCircleButtonStyle(fill: LCColor.surface, diameter: 52))
                 .accessibilityLabel("Log out")
@@ -233,7 +237,7 @@ struct ProfileView: View {
                         }) {
                             Image(systemName: "camera")
                                 .font(.system(size: 13, weight: .medium))
-                                .accentText(.pink)
+                                .foregroundColor(LCColor.glyph(.pink))
                         }
                         .buttonStyle(NeuCircleButtonStyle(diameter: 30))
                         .disabled(viewModel.isLoading)

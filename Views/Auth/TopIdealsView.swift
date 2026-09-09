@@ -22,7 +22,8 @@ private struct NeuPinkCloseButton: View {
         Button(action: action) {
             Image("Line Close_Pink")
                 .resizable()
-                .renderingMode(.original)
+                .renderingMode(.template)
+                .foregroundColor(LCColor.glyph(.pink))
                 .scaledToFit()
                 .frame(width: diameter * 0.38, height: diameter * 0.38)
         }
@@ -373,7 +374,11 @@ struct TopIdealsView: View {
             } label: {
                 Image(systemName: "heart.fill")
                     .font(.system(size: 16))
-                    .foregroundColor(isSaved ? .white : LCColor.pink)
+                    // Saved: the heart sits ON the primary fill, so it takes the
+                    // foreground that fill can carry. Unsaved: it sits on the
+                    // surface like any other boxed glyph.
+                    .foregroundColor(isSaved ? LCColor.contrastingInk(on: LCColor.pink)
+                                             : LCColor.glyph(.pink))
             }
             .buttonStyle(NeuCircleButtonStyle(fill: isSaved ? LCColor.pink : LCColor.surface, diameter: 34))
             .disabled(isSaved)

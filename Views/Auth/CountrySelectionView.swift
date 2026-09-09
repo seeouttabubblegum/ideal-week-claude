@@ -28,7 +28,7 @@ private struct NeuSelectionHeader: View {
                 Button(action: onBack) {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 15, weight: .bold))
-                        .accentText(.pink)
+                        .foregroundColor(LCColor.glyph(.pink))
                 }
                 .buttonStyle(NeuCircleButtonStyle(diameter: 36))
                 .accessibilityLabel("Back")

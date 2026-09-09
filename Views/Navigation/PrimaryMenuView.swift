@@ -94,7 +94,10 @@ struct PrimaryMenuView: View {
             } label: {
                 Image("Line Close_Pink")
                     .resizable()
-                    .renderingMode(.original)
+                    // Templated, not `.original`: the asset is baked pink, so on
+                    // `.original` it stayed pink in every palette.
+                    .renderingMode(.template)
+                    .foregroundColor(LCColor.glyph(.pink))
                     .scaledToFit()
                     .frame(width: 15, height: 15)
                     .frame(width: 40, height: 40)

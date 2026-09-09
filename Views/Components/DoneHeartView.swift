@@ -33,6 +33,8 @@ struct DoneHeartView: View {
             // swiping back un-draws it in reverse.
             Image("Line Done_Pink")
                 .resizable()
+                .renderingMode(.template)
+                .foregroundColor(LCColor.glyph(.pink))
                 .scaledToFit()
                 .frame(width: 32, height: 32)
                 .mask(

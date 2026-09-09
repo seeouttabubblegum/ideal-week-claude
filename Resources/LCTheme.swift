@@ -42,6 +42,30 @@ enum LCColor {
     /// the colour and this shadow together.
     static func textShadow(for role: LCHue) -> Color? { palette.textShadow(for: role) }
 
+    /// A glyph sitting inside a filled shape — a boxed icon: the close X in its
+    /// raised circle, the pencil on the profile's CTA button, the save
+    /// checkmark.
+    ///
+    /// Keeps the accent the design asks for while it still separates from what
+    /// is behind it, and falls back to white/ink when a rotation drops it below
+    /// that. The bar is 1.5:1 — except where the handoff itself ships a weaker
+    /// pairing (the save button's count badge is pink on blue at 1.49:1), and
+    /// there Present's own ratio becomes the bar. So Present is a no-op by
+    /// construction and the default look can never be second-guessed; only
+    /// pairings a rotation genuinely breaks are rescued.
+    ///
+    /// Unlike `accentText`, this adds no silhouette shadow: inside a 40pt circle
+    /// a hard offset reads as misregistration rather than an outline.
+    ///
+    /// `onFill` is the ROLE the shape is filled with, or nil for the app surface.
+    static func glyph(_ role: LCHue, onFill fillRole: LCHue? = nil) -> Color {
+        let fill = fillRole.map { palette.resolved($0) } ?? surface
+        let presentFill = fillRole.map { LCPalette.present.resolved($0) } ?? surface
+        let bar = min(1.5, contrast(LCPalette.present.resolved(role), presentFill))
+        let accent = palette.resolved(role)
+        return contrast(accent, fill) >= bar ? accent : contrastingInk(on: fill)
+    }
+
     /// Foreground for text or glyphs drawn ON an accent fill.
     ///
     /// The handoff's own rule is white on the darker accents, ink on the light

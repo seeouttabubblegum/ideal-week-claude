@@ -359,14 +359,16 @@ struct NeuCheckSaveButton: View {
         Button(action: action) {
             Image(systemName: "checkmark")
                 .font(.system(size: diameter * 0.38, weight: .heavy))
-                .accentText(.pink)
+                .foregroundColor(LCColor.glyph(.pink, onFill: .yellow))
         }
         .buttonStyle(NeuCircleButtonStyle(fill: LCColor.yellow, diameter: diameter))
         .overlay(alignment: .topTrailing) {
             if let count, count > 0 {
                 Text("\(count)")
                     .font(.manrope(12, .heavy))
-                    .accentText(.pink)
+                    // The handoff's own pairing is only 1.49:1, so `glyph` takes
+                    // that as the bar here and leaves Present exactly as it is.
+                    .foregroundColor(LCColor.glyph(.pink, onFill: .blue))
                     .frame(width: 22, height: 22)
                     .background(Circle().fill(LCColor.blue))
                     .offset(x: 7, y: -7)

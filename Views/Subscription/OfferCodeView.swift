@@ -43,7 +43,8 @@ struct OfferCodeView: View {
                             } label: {
                                 Image("Line Close_Pink")
                                     .resizable()
-                                    .renderingMode(.original)
+                                    .renderingMode(.template)
+                                    .foregroundColor(LCColor.glyph(.pink))
                                     .scaledToFit()
                                     .frame(width: 14, height: 14)
                             }

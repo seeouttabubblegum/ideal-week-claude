@@ -73,7 +73,7 @@ private struct AuthBackButton: View {
         Button(action: action) {
             Image(systemName: "chevron.left")
                 .font(.system(size: 15, weight: .bold))
-                .foregroundColor(LCColor.yellow)
+                .foregroundColor(LCColor.glyph(.yellow, onFill: .blue))
                 .frame(width: 38, height: 38)
                 .background(
                     Circle().fill(LCColor.blue)

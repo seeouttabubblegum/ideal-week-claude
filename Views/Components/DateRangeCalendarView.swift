@@ -118,7 +118,7 @@ struct DateRangeCalendarView: View {
             Button { shiftMonth(-1) } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 15, weight: .bold))
-                    .accentText(.pink)
+                    .foregroundColor(LCColor.glyph(.pink))
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(NeuCircleButtonStyle(diameter: 36))
@@ -131,7 +131,7 @@ struct DateRangeCalendarView: View {
             Button { shiftMonth(1) } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 15, weight: .bold))
-                    .accentText(.pink)
+                    .foregroundColor(LCColor.glyph(.pink))
                     .frame(width: 36, height: 36)
             }
             .buttonStyle(NeuCircleButtonStyle(diameter: 36))

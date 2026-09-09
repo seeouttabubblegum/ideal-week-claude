@@ -152,10 +152,10 @@ struct IdealEditView: View {
                     NeuFeatheredDivider()
 
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Category")
-                            .font(.manrope(16, .heavy))
-                            .foregroundColor(LCColor.ink)
-                        CategoryWellPicker(selection: $viewModel.category)
+                        // Matches New Ideal: the chosen category is named in the
+                        // label, so the row below is icons alone.
+                        CategorySelectionLabel(selection: viewModel.category)
+                        CategoryIconRow(selection: $viewModel.category)
                     }
                     .padding(.vertical, 14)
                 }

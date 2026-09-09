@@ -251,7 +251,7 @@ struct TopNav: View {
                         // Pink checklist — three rules, each ticked. (The
                         // handoff's vertical bars read as an audio waveform.)
                         IdealsChecklistGlyph()
-                            .stroke(LCColor.pink, style: StrokeStyle(
+                            .stroke(LCColor.glyph(.pink), style: StrokeStyle(
                                 lineWidth: 2.0, lineCap: .round, lineJoin: .round))
                             .frame(width: 26, height: 26)
                     }
@@ -281,7 +281,7 @@ struct TopNav: View {
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
-                .foregroundColor(usesBlueDrawerGlyph ? LCColor.blue : LCColor.pink)
+                .foregroundColor(usesBlueDrawerGlyph ? LCColor.glyph(.blue) : LCColor.glyph(.pink))
                 .frame(width: usesBlueDrawerGlyph ? 30 : 24,
                        height: usesBlueDrawerGlyph ? 30 : 24)
         }

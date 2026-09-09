@@ -26,7 +26,7 @@ struct WishlistQuickAddSheet: View {
                                onClose: onCancel, onSave: onAdd)
                 ScrollView {
                     VStack(alignment: .leading, spacing: 26) {
-                        section("CATEGORY") { categoryWells }
+                        section("CATEGORY: \(selectedCategory.uppercased())") { categoryIcons }
                         section("HOW OFTEN?") { howOftenSlider }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -54,11 +54,10 @@ struct WishlistQuickAddSheet: View {
 
     // MARK: - Category
 
-    /// Every category on screen at once (no dropdown), wrapping onto as many
-    /// lines as it needs. Unselected sits in a sunken well, selected is a raised
-    /// pink chip — the same treatment as the reminder day chips.
-    private var categoryWells: some View {
-        CategoryWellPicker(selection: $selectedCategory)
+    /// Every category on screen at once, as one row of icons. The chosen one is
+    /// named in this sheet's own section header, so the row needs no text.
+    private var categoryIcons: some View {
+        CategoryIconRow(selection: $selectedCategory)
     }
 
     // MARK: - How often?

@@ -36,7 +36,8 @@ struct SubscriptionView: View {
                         } label: {
                             Image("Line Close_Pink")
                                 .resizable()
-                                .renderingMode(.original)
+                                .renderingMode(.template)
+                                .foregroundColor(LCColor.glyph(.pink))
                                 .scaledToFit()
                                 .frame(width: 14, height: 14)
                         }
@@ -369,7 +370,7 @@ struct SubscriptionOptionCard: View {
             .overlay {
                 if isSelected {
                     RoundedRectangle(cornerRadius: LCRadius.card, style: .continuous)
-                        .stroke(LCColor.blue, lineWidth: 2)
+                        .stroke(LCColor.glyph(.blue), lineWidth: 2)
                 }
             }
         }
