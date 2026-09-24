@@ -9,8 +9,9 @@
 //  • Per-ideal "NEXT:" block — blue "NEXT:" above pink time + BOLDER day,
 //    all three lines character-justified into a near-square block at the
 //    row's right edge (time & day each ≈ half the title height).
-//  • Tracking dots — up to 13 sunken dots (pink done / blue over); fewer than
-//    13 shows the actual count plus ONE long sunken capsule stretching to the
+//  • Tracking dots — up to 13 sunken dots (pink done / blue over; Past and
+//    Future are blue done / pink over, see NeumorphicCompletionDot.fill); fewer than 13
+//    shows the actual count plus ONE long sunken capsule stretching to the
 //    width 13 dots would occupy. The whole rail is centred in screen width.
 //
 
@@ -36,6 +37,9 @@ struct IdealListItemLabelV2: View {
     var weekStartDay: String = WeekdayUtility.defaultWeekStartDay
     /// Called when the bell (unscheduled) icon is tapped. Defaults to opening edit view.
     var onScheduleTap: (() -> Void)? = nil
+    /// Set on the one row the first-run tour points at, so its bell can be
+    /// highlighted; nil everywhere else.
+    var bellSpot: WalkthroughSpot? = nil
     /// Optional trailing view (e.g. add-to-plan button). Shown in the title row when provided.
     private var trailingContent: () -> AnyView
 
@@ -45,7 +49,7 @@ struct IdealListItemLabelV2: View {
     /// edit view's day picker.
     @State private var showingScheduleDiagnostic: Bool = false
 
-    init(item: Ideal, background: Color, viewModel: IdealListViewViewModel, itemToEdit: Binding<Ideal>, onTap: (() -> Void)? = nil, swipeActive: Bool = false, showCategoryIcon: Bool = true, showDoneCircles: Bool = true, showSchedule: Bool = false, weekStartDay: String = WeekdayUtility.defaultWeekStartDay, onScheduleTap: (() -> Void)? = nil) {
+    init(item: Ideal, background: Color, viewModel: IdealListViewViewModel, itemToEdit: Binding<Ideal>, onTap: (() -> Void)? = nil, swipeActive: Bool = false, showCategoryIcon: Bool = true, showDoneCircles: Bool = true, showSchedule: Bool = false, weekStartDay: String = WeekdayUtility.defaultWeekStartDay, onScheduleTap: (() -> Void)? = nil, bellSpot: WalkthroughSpot? = nil) {
         self.item = item
         self.background = background
         self.viewModel = viewModel
@@ -57,10 +61,11 @@ struct IdealListItemLabelV2: View {
         self.showSchedule = showSchedule
         self.weekStartDay = weekStartDay
         self.onScheduleTap = onScheduleTap
+        self.bellSpot = bellSpot
         self.trailingContent = { AnyView(EmptyView()) }
     }
 
-    init(item: Ideal, background: Color, viewModel: IdealListViewViewModel, itemToEdit: Binding<Ideal>, onTap: (() -> Void)? = nil, swipeActive: Bool = false, showCategoryIcon: Bool = true, showDoneCircles: Bool = true, showSchedule: Bool = false, weekStartDay: String = WeekdayUtility.defaultWeekStartDay, onScheduleTap: (() -> Void)? = nil, @ViewBuilder trailingContent: @escaping () -> some View) {
+    init(item: Ideal, background: Color, viewModel: IdealListViewViewModel, itemToEdit: Binding<Ideal>, onTap: (() -> Void)? = nil, swipeActive: Bool = false, showCategoryIcon: Bool = true, showDoneCircles: Bool = true, showSchedule: Bool = false, weekStartDay: String = WeekdayUtility.defaultWeekStartDay, onScheduleTap: (() -> Void)? = nil, bellSpot: WalkthroughSpot? = nil, @ViewBuilder trailingContent: @escaping () -> some View) {
         self.item = item
         self.background = background
         self.viewModel = viewModel
@@ -72,6 +77,7 @@ struct IdealListItemLabelV2: View {
         self.showSchedule = showSchedule
         self.weekStartDay = weekStartDay
         self.onScheduleTap = onScheduleTap
+        self.bellSpot = bellSpot
         self.trailingContent = { AnyView(trailingContent()) }
     }
 
@@ -184,6 +190,7 @@ struct IdealListItemLabelV2: View {
                 .alignmentGuide(.lastTextBaseline) { $0[.bottom] - 8 }
                 .accessibilityLabel("Add schedule")
                 .accessibilityHint("Opens edit view to set a reminder day and time")
+                .modifier(OptionalWalkthroughSpot(spot: bellSpot))
             case .next(let text):
                 // Handoff 6a: a justified, near-square block at the row's right —
                 //   NEXT:   (blue, Manrope heavy)
@@ -200,10 +207,12 @@ struct IdealListItemLabelV2: View {
                 let timePart = parts.first ?? ""
                 let dayPart = parts.count > 1 ? parts[1] : ""
                 VStack(alignment: .trailing, spacing: 0) {
-                    JustifiedCharsLine(text: "NEXT:", size: 13, color: LCColor.blue)
+                    // Ink where the secondary is too light for the surface (Past).
+                    JustifiedCharsLine(text: "NEXT:", size: 13, color: LCColor.accentInk(.blue))
                         .padding(.bottom, 2)
-                    JustifiedCharsLine(text: timePart, size: 11, color: LCColor.pink)
-                    JustifiedCharsLine(text: dayPart, size: 13, color: LCColor.pink, stroke: 0.4)
+                    // Ink where the primary is too light for the surface (Future).
+                    JustifiedCharsLine(text: timePart, size: 11, color: LCColor.accentInk(.pink))
+                    JustifiedCharsLine(text: dayPart, size: 13, color: LCColor.accentInk(.pink), stroke: 0.4)
                         .padding(.top, 1)
                 }
                 .frame(width: 42)

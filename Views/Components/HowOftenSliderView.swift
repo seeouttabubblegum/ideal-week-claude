@@ -14,6 +14,10 @@ import SwiftUI
 struct HowOftenSliderView: View {
     @Binding var value: Int
 
+    /// The first-run tour asks the user to drag this knob, and moves on when
+    /// they let go.
+    @ObservedObject private var walkthrough = WalkthroughCoordinator.shared
+
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             GeometryReader { geometry in
@@ -47,6 +51,7 @@ struct HowOftenSliderView: View {
                         .overlay(Circle().fill(LCColor.chromatic(.pink, fallback: .blue))
                             .frame(width: 14, height: 14))
                         .offset(x: thumbX - HowOftenSlider.knobDiameter / 2)
+                        .walkthroughSpot(.howOftenKnob)
                 }
                 .frame(maxHeight: .infinity)
                 .contentShape(Rectangle())
@@ -62,7 +67,10 @@ struct HowOftenSliderView: View {
                         // Catches a tap that lands on the stop the knob is already
                         // on: no movement, but the user still reached past the
                         // title field.
-                        .onEnded { _ in hideKeyboard() }
+                        .onEnded { _ in
+                            hideKeyboard()
+                            walkthrough.report(.changedHowOften)
+                        }
                 )
             }
             .frame(height: 44)
@@ -77,6 +85,7 @@ struct HowOftenSliderView: View {
                         withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
                             value = stop
                         }
+                        walkthrough.report(.changedHowOften)
                     } label: {
                         Text(HowOftenSlider.label(for: stop))
                             .font(.manrope(14, value == stop ? .heavy : .medium))

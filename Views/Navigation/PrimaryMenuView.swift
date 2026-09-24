@@ -56,15 +56,10 @@ struct PrimaryMenuView: View {
         return Color(hue: h, saturation: min(1, s * sMul), brightness: min(1, b * bMul), opacity: a)
     }
 
-    /// Per-tab shade: brand pink mixed toward white in 16% steps
-    /// (#DD4298 → #E260A9 → #E87FB9 → #EE9DC9 → #F3BBDA → #F8D9EA).
+    /// Per-tab shade: the primary accent mixed toward white in 16% steps.
+    /// See `DrawerTabPalette`, which also decides each tab's label ink.
     private func tabShade(_ index: Int) -> Color {
-        let c = LCColor.pink.getComponents()
-        let p = Double(index) * 0.16
-        return Color(red: c.red + (1.0 - c.red) * p,
-                     green: c.green + (1.0 - c.green) * p,
-                     blue: c.blue + (1.0 - c.blue) * p,
-                     opacity: c.opacity)
+        DrawerTabPalette.shade(index)
     }
 
     // MARK: - Layout metrics (handoff 2e: header 210, tabs 100 @ 402×874)
@@ -176,6 +171,9 @@ struct PrimaryMenuView: View {
             ZStack(alignment: .top) {
                 content()
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+                    // The label runs opposite to its ground where it has to —
+                    // see DrawerTabPalette.ink.
+                    .environment(\.drawerInk, DrawerTabPalette.ink(index))
                 MenuTabWedge()
                     .fill(Color.black.opacity(0.22))
                     .frame(height: 11)

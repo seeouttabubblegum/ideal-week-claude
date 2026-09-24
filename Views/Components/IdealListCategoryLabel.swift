@@ -28,6 +28,8 @@ struct IdealListCategoryLabel: View {
     }
     let cat: Category
     var onePlusTapped: (() -> Void)? = nil
+    /// Set on the first band only, so the first-run tour can point at its plus.
+    var plusSpot: WalkthroughSpot? = nil
 
     var body: some View {
         HStack(alignment: .center, spacing: 14) {
@@ -68,6 +70,7 @@ struct IdealListCategoryLabel: View {
                 }
                 .buttonStyle(BandAddButtonStyle())
                 .accessibilityLabel("Add \(cat.rawValue) ideal")
+                .modifier(OptionalWalkthroughSpot(spot: plusSpot))
             }
         }
         .padding(.horizontal, 22)

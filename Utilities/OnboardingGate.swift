@@ -21,6 +21,14 @@ import Foundation
 
 enum OnboardingGate {
 
+    /// The three-screen help carousel that used to open on first launch.
+    ///
+    /// Switched OFF on 2026-09-25: the guided tour now walks a new user through
+    /// the real screens, and two introductions in a row is one too many. The
+    /// carousel itself is untouched — Help still shows it, and flipping this
+    /// back brings it to first launch again.
+    static let showsHelpCarousel = false
+
     // MARK: - Keys
 
     static let legacySeenHelpKey = "hasSeenHelpOnboarding"
@@ -67,6 +75,10 @@ enum OnboardingGate {
         /// When true, the caller should stamp the legacy global values into
         /// this uid's per-user keys (the account predates per-user scoping).
         let migrateLegacyToUser: Bool
+        /// When true, the caller should record the help step as seen even
+        /// though nothing was shown — the carousel is off, and without this the
+        /// decision would be taken again on every launch.
+        var markHelpSeen: Bool = false
     }
 
     static func decide(_ s: Signals) -> Outcome {
@@ -78,7 +90,8 @@ enum OnboardingGate {
         // 2. Fresh account: the legacy globals (if any) belong to an older
         //    account on this device — ignore them and onboard.
         if s.isNewAccount {
-            return Outcome(decision: .showHelp, migrateLegacyToUser: false)
+            return onboardingOutcome(completedSettings: s.userCompletedSettings,
+                                     migrateLegacyToUser: false)
         }
         // 3. Old account with legacy device state: it was this account (or its
         //    era) that saw onboarding under the global keys — migrate, resume
@@ -87,7 +100,23 @@ enum OnboardingGate {
             return Outcome(decision: s.legacyCompletedSettings ? .none : .showSettings,
                            migrateLegacyToUser: true)
         }
-        // 4. Old account, fresh device: same as the app has always behaved.
-        return Outcome(decision: .showHelp, migrateLegacyToUser: false)
+        // 4. Old account, fresh device (a reinstall, typically): the
+        //    preferences live on the device and went with the old install, so
+        //    they are set again. No carousel, and no tour — WalkthroughGate
+        //    keeps those for genuinely new accounts.
+        return onboardingOutcome(completedSettings: s.userCompletedSettings,
+                                 migrateLegacyToUser: false)
+    }
+
+    /// The start of onboarding: the carousel when it is on, otherwise straight
+    /// to the preferences step.
+    private static func onboardingOutcome(completedSettings: Bool,
+                                          migrateLegacyToUser: Bool) -> Outcome {
+        guard !showsHelpCarousel else {
+            return Outcome(decision: .showHelp, migrateLegacyToUser: migrateLegacyToUser)
+        }
+        return Outcome(decision: completedSettings ? .none : .showSettings,
+                       migrateLegacyToUser: migrateLegacyToUser,
+                       markHelpSeen: true)
     }
 }

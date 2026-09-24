@@ -150,6 +150,7 @@ struct TopNav: View {
                     }
                     .buttonStyle(NeuNextPillButtonStyle())
                     .accessibilityLabel("Next week planning")
+                    .walkthroughSpot(.nextPill)
                 }
             }
             // Quote block — runs all the way to the header's right edge
@@ -181,6 +182,7 @@ struct TopNav: View {
             // would open a second copy — hide it. iPhone unchanged.
             if !MenuDrawer.isPersistentSidebar {
                 drawerButton
+                    .walkthroughSpot(.drawerToggle)
                     .padding(.top, 16)
                     .padding(.trailing, 22)
             }

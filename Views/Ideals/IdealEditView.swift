@@ -17,6 +17,10 @@ struct IdealEditView: View {
     @State private var showRemoveCompletionAlert = false
     @State private var isButtonPressed = false
 
+    /// The first-run tour teaches scheduling on this screen, so it hosts those
+    /// steps and reports the toggle, the day pick and the save.
+    @ObservedObject private var walkthrough = WalkthroughCoordinator.shared
+
     var textColor: Color {
         if let firstSettings = storedTempSettings.first {
             return Color(red: firstSettings.textColorRed, green: firstSettings.textColorGreen, blue: firstSettings.textColorBlue, opacity: firstSettings.textColorOpacity)
@@ -176,6 +180,7 @@ struct IdealEditView: View {
                     }
                     .toggleStyle(NeuToggleStyle())
                     .neuGroupedRow()
+                    .walkthroughSpot(.scheduleToggle)
                     .onChange(of: viewModel.setReminder) { _, _ in viewModel.ensureAtLeastOneSchedule() }
                     if viewModel.setReminder {
                         NeuFeatheredDivider()
@@ -186,6 +191,7 @@ struct IdealEditView: View {
                             days: getRemainingDaysOfWeek(weekStartDay: weekStartDay)
                         )
                         .padding(.vertical, 14)
+                        .walkthroughSpot(.reminderDays)
                     }
                 }
                 .padding(.horizontal, LCMetrics.screenMargin)
@@ -260,6 +266,7 @@ struct IdealEditView: View {
                     .toggleStyle(NeuToggleStyle())
                     .neuGroupedRow()
                     .disabled(scheduleLocked)
+                    .walkthroughSpot(.scheduleToggle)
                     .onChange(of: viewModel.setReminder) { _, _ in
                         if !scheduleLocked { viewModel.ensureAtLeastOneSchedule() }
                     }
@@ -276,6 +283,7 @@ struct IdealEditView: View {
                                 days: getRemainingDaysOfWeek(weekStartDay: weekStartDay)
                             )
                             .padding(.vertical, 14)
+                            .walkthroughSpot(.reminderDays)
                         }
                     }
                 }
@@ -372,6 +380,7 @@ struct IdealEditView: View {
                     let weekStartDay = storedTempSettings.first?.week_start_day ?? WeekdayUtility.defaultWeekStartDay
                     viewModel.save(weekStartDay: weekStartDay) { success in
                         if success {
+                            walkthrough.report(.savedSchedule)
                             editItemPresented = false
                         } else {
                             if let reminderError = viewModel.reminderError {
@@ -384,6 +393,7 @@ struct IdealEditView: View {
                     }
                 }
                 .disabled(viewModel.isSaving)
+                .walkthroughSpot(.saveButton)
             }
         }
         .padding(.horizontal, LCMetrics.screenMargin)
@@ -402,8 +412,17 @@ struct IdealEditView: View {
             }
         }
         .background(LCColor.surface.ignoresSafeArea())
+        .walkthroughHost(walkthrough, screen: .editIdeal)
         .onAppear {
             viewModel.configurePlannedItemPresentation(defaultScheduleOff: shouldDefaultPlannedScheduleOff)
+            // The first-run tour's bell step ends when this screen opens.
+            walkthrough.report(.openedScheduleEditor)
+        }
+        // Left without saving: the tour picks up on the list rather than
+        // waiting for a save that is not coming.
+        .onDisappear { walkthrough.report(.closedScheduleEditor) }
+        .onChange(of: viewModel.setReminder) { _, isOn in
+            if isOn { walkthrough.report(.enabledReminder) }
         }
         .alert("Error", isPresented: $viewModel.showAlert) {
             Button("OK") {

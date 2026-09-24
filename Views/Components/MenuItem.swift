@@ -23,8 +23,9 @@ struct MenuItem: View {
     /// Same symbol the 1h header uses for the button back to the list.
     var showsChecklist: Bool = false
 
-    /// Menu ink — the drawer labels/icons use the handoff's #181818.
-    private let menuInk = Color(hex: 0x181818)
+    /// Menu ink — the handoff's #181818, except on the tabs where that cannot be
+    /// read against the tab's own shade. The tab decides; see DrawerTabPalette.
+    @Environment(\.drawerInk) private var menuInk
 
     var body: some View {
         HStack(spacing: 0) {

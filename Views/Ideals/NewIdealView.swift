@@ -15,6 +15,11 @@ struct NewIdealView: View {
     @State private var setReminder: Bool = false
     @Query var storedAccentColors: [MainSettings]
 
+    /// The first-run tour walks through this screen, so it hosts the overlay
+    /// itself and tells the tour when a title is typed and when the save lands.
+    @ObservedObject private var walkthrough = WalkthroughCoordinator.shared
+    @FocusState private var titleFocused: Bool
+
 
     var accentColor: Color {
         // Follows the palette chosen in Settings (LCPalette).
@@ -47,6 +52,8 @@ struct NewIdealView: View {
                     if viewModel.canSave {
                         viewModel.save(setReminder: setReminder, weekStartDay: storedAccentColors.first?.week_start_day) { success in
                             if success {
+                                walkthrough.noteCreatedIdeal(title: viewModel.title)
+                                walkthrough.report(.savedIdeal)
                                 newItemPresented = false
                                 dismiss()
                             } else if !viewModel.showAlert {
@@ -71,6 +78,7 @@ struct NewIdealView: View {
                             .tint(LCColor.pink)
                     }
                 }
+                .walkthroughSpot(.saveButton)
             }
         }
         .padding(.horizontal, LCMetrics.screenMargin)
@@ -128,9 +136,11 @@ struct NewIdealView: View {
                             VoiceTitleField(
                                 text: $viewModel.title,
                                 placeholder: "Title",
-                                accentColor: LCColor.pink
+                                accentColor: LCColor.pink,
+                                focus: $titleFocused
                             )
                             .padding(.vertical, 10)
+                            .walkthroughSpot(.titleField)
 
                             NeuFeatheredDivider()
 
@@ -141,6 +151,7 @@ struct NewIdealView: View {
                                 CategoryIconRow(selection: $viewModel.category)
                             }
                             .padding(.vertical, 14)
+                            .walkthroughSpot(.categoryPicker)
 
                             NeuFeatheredDivider()
 
@@ -180,12 +191,35 @@ struct NewIdealView: View {
             }
         }
         .background(LCColor.surface.ignoresSafeArea())
+        .walkthroughHost(walkthrough, screen: .newIdeal)
+        // The tour's title step arrives with the cursor already in the field
+        // and the keyboard up, so there is nothing to find before typing.
+        .onAppear { focusTitleIfTourAsks() }
+        .onChange(of: walkthrough.run?.step?.id) { _, _ in focusTitleIfTourAsks() }
+        // The tour's title step ends as soon as there is a title to save.
+        .onChange(of: viewModel.title) { _, newValue in
+            if !newValue.trimmingCharacters(in: .whitespaces).isEmpty {
+                walkthrough.report(.enteredTitle)
+            }
+        }
+        // Closed without saving: the tour resumes on the list instead of
+        // waiting for a save that is not coming.
+        .onDisappear { walkthrough.report(.closedNewIdeal) }
         .alert(isPresented: $viewModel.showAlert) {
             Alert(
                 title: Text("Error"),
                 message: Text(viewModel.alertMessage),
                 dismissButton: .cancel(Text("OK"))
             )
+        }
+    }
+
+    private func focusTitleIfTourAsks() {
+        guard walkthrough.run?.step?.focusesTitleField == true else { return }
+        // A beat after the sheet settles, or the keyboard opens into a view
+        // that is still animating in and closes again.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            titleFocused = true
         }
     }
 }

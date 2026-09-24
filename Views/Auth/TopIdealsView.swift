@@ -76,7 +76,11 @@ struct TopIdealsView: View {
             return (.greatestFiniteMagnitude, 0)
         }
         let rangeStart = Date(timeIntervalSince1970: earliest).startOfDay.timeIntervalSince1970
-        let weekEnd = Date(timeIntervalSince1970: latest).addingTimeInterval(7 * 24 * 60 * 60 - 1)
+        // The last active week ends when the next one starts — seven calendar
+        // days on, which is not 604800 seconds when a clock change falls inside.
+        let weekEnd = WeekdayUtility
+            .nextWeekStart(after: Date(timeIntervalSince1970: latest), weekStartDay: weekStartDay)
+            .addingTimeInterval(-1)
         return (rangeStart, weekEnd.endOfDay.timeIntervalSince1970)
     }
 

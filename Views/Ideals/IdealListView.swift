@@ -201,6 +201,11 @@ struct IdealListView: View {
 
     @Environment(\.scenePhase) private var scenePhase
 
+    /// The first-run tours. One coordinator for the whole app: a sheet cannot
+    /// inherit the overlay from the page underneath it, so each screen hosts
+    /// the same running tour.
+    @ObservedObject private var walkthrough = WalkthroughCoordinator.shared
+
     /// Tracks which user's reminder-sync `lastSeenCompleted` state has been seeded in
     /// this view session. Storing the uid (not a Bool) defensively handles the rare case
     /// where the view identity is reused across users (e.g. auth gate keeps the same view
@@ -264,8 +269,12 @@ struct IdealListView: View {
     
     /// Next week boundaries using user-configured week start day.
     private var nextWeekBoundaries: (start: TimeInterval, end: TimeInterval)? {
-        guard let current = currentWeekBoundaries else { return nil }
-        return (start: current.nextStart, end: current.nextStart + 7 * 24 * 3600)
+        guard let current = currentWeekBoundaries,
+              let weekStartDay = storedTempSettings.first?.week_start_day else { return nil }
+        // Seven calendar days — an hour out on a clock-change week otherwise.
+        return (start: current.nextStart,
+                end: WeekdayUtility.nextWeekStartTimestamp(after: current.nextStart,
+                                                           weekStartDay: weekStartDay))
     }
     
     private func isInRange(_ dateValue: TimeInterval, start: TimeInterval, endExclusive: TimeInterval) -> Bool {
@@ -469,6 +478,47 @@ struct IdealListView: View {
         return itemsByCategory[cat] ?? []
     }
 
+    /// The two test links under the NEXT pill. False only while capturing the
+    /// Help screenshots.
+    private static let showsTestLinks = true
+
+    /// Scroll target for the header, so the tour can bring the NEXT pill and
+    /// the drawer button back on screen from anywhere in the list.
+    private static let tourHeaderId = "tourHeader"
+
+    private func scrollToTourSpot(_ spot: WalkthroughSpot?, with scroller: ScrollViewProxy) {
+        guard let spot else { return }
+        let target: (id: AnyHashable, anchor: UnitPoint)?
+        switch spot {
+        case .trackingDots, .scheduleBell:
+            target = tourIdealId.map { (AnyHashable($0), UnitPoint.center) }
+        case .categoryBand, .addIdealButton, .nextPill, .drawerToggle:
+            target = (AnyHashable(Self.tourHeaderId), .top)
+        default:
+            target = nil
+        }
+        guard let target else { return }
+        // Retried: a List only renders the rows near the viewport, so a target
+        // far down the page has no anchor until it has been scrolled to — and a
+        // row the user has just created may not even be in `items` yet. Each
+        // attempt brings it closer, and the highlight appears with the anchor.
+        for delay in [0.3, 0.9, 1.6] {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
+                guard walkthrough.run?.step?.spot == spot else { return }
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    scroller.scrollTo(target.id, anchor: target.anchor)
+                }
+            }
+        }
+    }
+
+    /// The ideal the tour's "mark it done" step points at: the one the user
+    /// created during the tour, or the first on the page.
+    private var tourIdealId: String? {
+        let rows = Category.allCases.flatMap { catItems($0) }.map { (id: $0.id, title: $0.title) }
+        return TourIdealHighlight.idealId(in: rows, createdTitle: walkthrough.createdIdealTitle)
+    }
+
     /// Aggregate completion (0…1) for the header progress-rings icon, grouped by
     /// the book's official "3 Fs" structure (order matters, outer → inner):
     ///   F THIS = Fix · F ME = Fitness, Feelings, Faculties · F EVERYTHING ELSE = Family, Finance, Fun
@@ -506,6 +556,8 @@ struct IdealListView: View {
     private func handleRightSwipe(for item: Ideal) {
         HapticFeedback.impact()
         viewModel.incrementDoneCount(for: item)
+        // The tour's "mark it done" step ends on a real swipe.
+        walkthrough.report(.markedDone)
 
         // Check and reset skip_reviews if it's the start of the week
         checkAndResetSkipReviews()
@@ -731,6 +783,10 @@ struct IdealListView: View {
             ForEach(filteredItems, id: \.id) { item in
                 idealItemRow(item: item, filteredItems: filteredItems,
                              isLastSection: cat == Category.allCases.last)
+                    .modifier(OptionalWalkthroughSpot(
+                        spot: item.id == tourIdealId ? .trackingDots : nil))
+                    // Explicit identity so the tour can scroll straight to a row.
+                    .id(item.id)
             }
         }
         .tag(cat)
@@ -743,8 +799,12 @@ struct IdealListView: View {
             cat: cat,
             onePlusTapped: {
                 handlePlusIconTap(for: cat)
-            }
+            },
+            // The tour points at the first band and its plus; marking every
+            // band would leave the highlight on whichever drew last.
+            plusSpot: cat == Category.allCases.first ? .addIdealButton : nil
         )
+        .modifier(OptionalWalkthroughSpot(spot: cat == Category.allCases.first ? .categoryBand : nil))
         .listRowInsets(EdgeInsets())
         .listRowSeparator(.hidden)
         // Gap between the previous section's last row and this band (handoff 24px).
@@ -777,7 +837,8 @@ struct IdealListView: View {
                     weekStartDay: start_day,
                     onScheduleTap: {
                         handleEditTap(for: item)
-                    }
+                    },
+                    bellSpot: item.id == tourIdealId ? .scheduleBell : nil
                 )
                 .background(itemWidthGeometryReader(item: item))
                 .offset(x: itemOffset)
@@ -1542,6 +1603,7 @@ struct IdealListView: View {
                     .frame(maxWidth: .infinity)
                 }
                 .buttonStyle(NextCTAButtonStyle())
+                .walkthroughSpot(.addToNextList)
                 .padding(.horizontal, LCMetrics.screenMargin)
                 .padding(.top, 20)
                 .listRowInsets(EdgeInsets())
@@ -1561,11 +1623,13 @@ struct IdealListView: View {
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 4)
+                .walkthroughSpot(.nextNotice)
                 .listRowInsets(EdgeInsets())
                 .listRowSeparator(.hidden)
 
                 // Plan button: always visible. When plan exists = "Add more to next week" (no PIN). Otherwise phase-based.
                 planningButton(hasExistingPlanForNextWeek: !plannedItems.isEmpty)
+                    .walkthroughSpot(.planButton)
                     .padding(.horizontal, LCMetrics.screenMargin)
                     .padding(.bottom, 30)
                     .listRowInsets(EdgeInsets())
@@ -1738,11 +1802,13 @@ struct IdealListView: View {
     }
     
     private var idealListList: AnyView {
-        AnyView(List {
+        AnyView(ScrollViewReader { scroller in
+            List {
                         TopNav(pageTitle: "My Ideal Week", isIdealList: true, showDrawer: $showDrawer, showingNewItemView: $viewModel.showingNewItemView, userId: userId, externalGoToProgress: $goToProgress, externalGoToIdeals: $goToIdeals, onNextTapped: {
                             selectedScheduleFilter = .plan
                             showNextPage = true
                         }, progressRings: groupProgressRings)
+                            .id(Self.tourHeaderId)
                             .listRowInsets(EdgeInsets())
                             .listRowSeparator(.hidden)
                             .listRowBackground(LCColor.surface)
@@ -1750,11 +1816,15 @@ struct IdealListView: View {
                         // (Inspiration line now lives in TopNav's header quote box —
                         // the old full-width duplicate under NEXT was removed.)
 
-                        // Test button: manually re-open the weekly prompt. Resets
-                        // this week's "already opened" trackers, then triggers the
-                        // flow. DEBUG-only — it bypasses every gate, so it must
-                        // never ship to the App Store.
-                        #if DEBUG
+                        // ── TEMPORARY TEST LINKS — REMOVE BEFORE THE APP STORE ──
+                        // Flip `showsTestLinks` to false to take clean Help
+                        // screenshots without them.
+                        if Self.showsTestLinks {
+                        // Both bypass their gates so the client can try the flows
+                        // on TestFlight without waiting for the real trigger.
+                        // They used to be #if DEBUG, which kept them out of
+                        // TestFlight builds; they are deliberately in every build
+                        // now and must come out before a public release.
                         Button {
                             HapticFeedback.impact()
                             triggerWeeklyPromptForTesting()
@@ -1770,7 +1840,27 @@ struct IdealListView: View {
                         .listRowInsets(EdgeInsets())
                         .listRowSeparator(.hidden)
                         .listRowBackground(LCColor.surface)
-                        #endif
+
+                        // Same idea for the first-run tour: a user who is long
+                        // past onboarding can still see it. (Help's "Show tips
+                        // again" stays as the permanent way in.)
+                        Button {
+                            HapticFeedback.impact()
+                            walkthrough.restartTour()
+                        } label: {
+                            Text("\u{1F9ED} Show First-Run Tips (Test)")
+                                .font(.manrope(14, .bold))
+                                .accentText(.blue)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, pointsFromArtboardPixels(77))   // 77px side gutter
+                                .padding(.bottom, 8)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(LCColor.surface)
+                        }
+                        // ── end temporary test links ──
 
                         // Tabs removed: the ideals page always shows the current-week
                         // ideals. "Next?" planning moved to its own page (header NEXT
@@ -1786,7 +1876,22 @@ struct IdealListView: View {
                     .environment(\.defaultMinListRowHeight, 1)
                     .scrollContentBackground(.hidden)
                     .background(LCColor.surface.ignoresSafeArea())
-                    )
+                    // The tour's "mark it done" step points at an ideal that may
+                    // sit below the fold — the one just created, in whichever
+                    // category it belongs to. Bring it into view.
+                    // Bring whatever the tour is pointing at into view: the
+                    // ideal itself for the row steps, the header for the NEXT
+                    // pill and the drawer — which are off-screen as soon as the
+                    // user is working in a category further down the page.
+                    .onChange(of: walkthrough.run?.step?.spot) { _, spot in
+                        scrollToTourSpot(spot, with: scroller)
+                    }
+                    // The row for a just-saved ideal arrives with the next
+                    // Firestore snapshot, which can land after the step does.
+                    .onChange(of: tourIdealId) { _, _ in
+                        scrollToTourSpot(walkthrough.run?.step?.spot, with: scroller)
+                    }
+        })
     }
 
     /// Extracted to reduce body type-check complexity.
@@ -1799,6 +1904,18 @@ struct IdealListView: View {
     
     var body: some View {
         IdealListRootView(contentView: contentView)
+            // First-run tours are drawn over the real page (see WalkthroughOverlay).
+            .walkthroughHost(walkthrough, screen: .idealsList)
+            // The tour opens the New Ideal screen itself when it reaches the
+            // step that walks through it — the user is not left hunting for
+            // the plus button.
+            .onChange(of: walkthrough.request) { _, request in
+                guard request == .openNewIdeal else { return }
+                walkthrough.clearRequest()
+                categoryForNewIdeal = Category.allCases.first
+                wishlistCreation = false
+                viewModel.showingNewItemView = true
+            }
     }
     
     /// Explicit AnyView so compiler can verify View conformance.
@@ -1807,6 +1924,7 @@ struct IdealListView: View {
             mainContent
                 .tint(LCColor.pink)
                 .onAppear {
+                    walkthrough.startOnListAppear()
                     Task {
                         await subscriptionManager.updatePurchasedProducts()
                     }
@@ -2016,6 +2134,14 @@ struct IdealListView: View {
                     .listStyle(.plain)
                     .scrollContentBackground(.hidden)
                     .background(LCColor.surface.ignoresSafeArea())
+                    // The Next? page has its own short tour, the first time it
+                    // is opened after the first-run one.
+                    .walkthroughHost(walkthrough, screen: .nextPage)
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                            walkthrough.startNextPageTour()
+                        }
+                    }
                     .toolbar(.hidden, for: .navigationBar)
                 }
                 .preferredColorScheme(.light), inNextCover: true)

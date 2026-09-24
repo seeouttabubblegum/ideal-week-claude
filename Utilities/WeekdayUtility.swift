@@ -107,12 +107,40 @@ enum WeekdayUtility {
         return (start, end)
     }
 
+    /// Names a week as (year, week number).
+    ///
+    /// The year MUST be `.yearForWeekOfYear`, not `.year`: a week that straddles
+    /// 31 December belongs to the next year's week 1 while its calendar year is
+    /// still the old one, so pairing `.year` with `.weekOfYear` gives the same
+    /// name to two different weeks twelve months apart — 2025-12-28 and
+    /// 2026-12-27 were both "2026-W1". That is the New Year bug: a brand-new
+    /// week reading as one the app had already handled.
     static func weekIdentifier(for date: Date = DateProviderService.shared.now(), weekStartDay: String) -> (year: Int, week: Int) {
         let customCalendar = calendar(firstWeekday: weekStartDay)
         return (
-            customCalendar.component(.year, from: date),
+            customCalendar.component(.yearForWeekOfYear, from: date),
             customCalendar.component(.weekOfYear, from: date)
         )
+    }
+
+    /// The instant the week after `start` begins — seven CALENDAR days later,
+    /// which is not `start + 604800` on the weeks a clock changes: an ideal whose
+    /// startDate sits exactly on a week boundary would fall in the wrong week by
+    /// that hour. Use this for every "[week start, week end)" bound.
+    static func nextWeekStart(after start: Date, weekStartDay: String) -> Date {
+        nextWeekStart(after: start, calendar: calendar(firstWeekday: weekStartDay))
+    }
+
+    /// Calendar-injected form, so the clock-change behaviour can be tested in a
+    /// time zone other than the device's.
+    static func nextWeekStart(after start: Date, calendar: Calendar) -> Date {
+        calendar.date(byAdding: .day, value: 7, to: start) ?? start.addingTimeInterval(7 * 24 * 3600)
+    }
+
+    /// The same bound as a timestamp, for the Firestore queries that work in
+    /// seconds since 1970.
+    static func nextWeekStartTimestamp(after start: TimeInterval, weekStartDay: String) -> TimeInterval {
+        nextWeekStart(after: Date(timeIntervalSince1970: start), weekStartDay: weekStartDay).timeIntervalSince1970
     }
 
     static func daysUntilNextWeekStart(from date: Date = DateProviderService.shared.now(), weekStartDay: String) -> Int {

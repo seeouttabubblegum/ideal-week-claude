@@ -203,8 +203,18 @@ class PlanningSheetViewModel: ObservableObject {
     }
 
     // Wishlist category methods
-    func getWishlistCategory(for idealId: String) -> String {
-        return wishlistCategories[idealId] ?? Self.defaultCategory
+    /// The category a selected wishlist item will be saved under: the one picked
+    /// here, otherwise its own. Save, the picker and the coverage notice all read
+    /// this, so what the row shows is what is counted and what is written.
+    func resolvedWishlistCategory(for ideal: Ideal) -> String {
+        if let picked = wishlistCategories[ideal.id], !picked.isEmpty { return picked }
+        return ideal.category
+    }
+
+    /// The picker's value for a wishlist item. It used to show Fix for any item
+    /// whose category had not been touched, while the save kept the item's own.
+    func getWishlistCategory(for ideal: Ideal) -> String {
+        PlanCategoryCoverage.canonical(resolvedWishlistCategory(for: ideal)) ?? Self.defaultCategory
     }
     
     func setWishlistCategory(for idealId: String, value: String) {
@@ -333,6 +343,7 @@ class PlanningSheetViewModel: ObservableObject {
     // MARK: - New ideals to create (weekly prompt third screen)
 
     func addNewIdealDraft() {
+        guard MissedAnythingDrafts.canAddAnother(newIdealsToCreate) else { return }
         newIdealsToCreate.append(NewIdealDraft())
     }
 
@@ -347,6 +358,11 @@ class PlanningSheetViewModel: ObservableObject {
             if draft.groups.isEmpty { draft.groups = [PlannedReminderGroup()] }
         }
         newIdealsToCreate[index] = draft
+    }
+
+    /// "Edit" on an added ideal: brings it back into the form.
+    func reopenNewIdealDraft(id: String) {
+        newIdealsToCreate = MissedAnythingDrafts.reopen(id: id, in: newIdealsToCreate)
     }
 
     func removeNewIdealDraft(id: String) {
@@ -469,7 +485,8 @@ class PlanningSheetViewModel: ObservableObject {
         let currentWeekStart = WeekdayUtility.weekStart(weekStartDay: weekStartDay).timeIntervalSince1970
         let nextWeekStart = nextWeekStartTimestamp(weekStartDay: weekStartDay)
         let targetStart = forCurrentWeek ? currentWeekStart : nextWeekStart
-        let targetEnd = targetStart + (7 * 24 * 3600)
+        // Seven calendar days, not 604800 seconds — see WeekdayUtility.nextWeekStart.
+        let targetEnd = WeekdayUtility.nextWeekStartTimestamp(after: targetStart, weekStartDay: weekStartDay)
         let newIdealCreatedDate = forCurrentWeek ? Date().timeIntervalSince1970 : targetStart
         
         // Next? flow fully replaces existing plan records before writing the new plan set.
@@ -501,7 +518,7 @@ class PlanningSheetViewModel: ObservableObject {
 
             for ideal in selectedWishlistIdeals {
                 let idealId = ideal.id
-                let finalCategory = wishlistCategories[idealId]?.isEmpty == false ? (wishlistCategories[idealId] ?? ideal.category) : ideal.category
+                let finalCategory = resolvedWishlistCategory(for: ideal)
                 let finalTitle = ideal.title.trimmingCharacters(in: .whitespacesAndNewlines)
                 trackRequestedDuplicateKey(category: finalCategory, title: finalTitle)
             }
@@ -553,7 +570,7 @@ class PlanningSheetViewModel: ObservableObject {
             // (Only regular ideals use clone creation for Next? planning.)
             for ideal in selectedWishlistIdeals {
                 let idealId = ideal.id
-                let finalCategory = wishlistCategories[idealId]?.isEmpty == false ? (wishlistCategories[idealId] ?? ideal.category) : ideal.category
+                let finalCategory = resolvedWishlistCategory(for: ideal)
                 let finalTitle = ideal.title.trimmingCharacters(in: .whitespacesAndNewlines)
 
                 if let key = IdealDuplicateGuard.duplicateKey(category: finalCategory, title: finalTitle) {
@@ -710,7 +727,8 @@ class PlanningSheetViewModel: ObservableObject {
                         Self.deletePlanRecordsOutsideCurrentAndNextWeek(
                             plannedRecordsRef: plannedRecordsRef,
                             currentWeekStart: currentWeekStart,
-                            nextWeekStart: nextWeekStart
+                            nextWeekStart: nextWeekStart,
+                            weekStartDay: weekStartDay
                         ) { [weak self] _ in
                             // The in-flight window must stay open until the caller is told, or a
                             // second launch can start the multi-write while the prune is still going.
@@ -877,10 +895,11 @@ class PlanningSheetViewModel: ObservableObject {
         plannedRecordsRef: CollectionReference,
         currentWeekStart: TimeInterval,
         nextWeekStart: TimeInterval,
+        weekStartDay: String,
         completion: @escaping (Error?) -> Void
     ) {
-        let sEnd = currentWeekStart + 7 * 24 * 3600
-        let nEnd = nextWeekStart + 7 * 24 * 3600
+        let sEnd = WeekdayUtility.nextWeekStartTimestamp(after: currentWeekStart, weekStartDay: weekStartDay)
+        let nEnd = WeekdayUtility.nextWeekStartTimestamp(after: nextWeekStart, weekStartDay: weekStartDay)
         plannedRecordsRef.getDocuments { snapshot, error in
             if let error = error {
                 completion(error)

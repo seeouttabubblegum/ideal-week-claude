@@ -2,20 +2,21 @@
 //  MissedCategoriesNotice.swift
 //  The Ideal Week
 //
-//  Moved out of PlanningSheetView (2026-09-04) verbatim. Behaviour unchanged.
+//  Moved out of PlanningSheetView (2026-09-04). Since 2026-09-16 it is hidden,
+//  not replaced by an all-clear line, once nothing is missing.
 //
 
 import SwiftUI
 
-/// Reactive category-coverage notice shown under the "Missed Anything?" title.
+/// Category-coverage notice on the "Missed Anything?" step.
 ///
-/// It only exists for users who landed on the step with gaps: it names the
-/// categories that still have no ideal, drops each one as soon as a draft covers
-/// it, and flips to the all-clear line when the last gap is filled. Kept as its
-/// own View so the type-checker solves it in isolation — inlining it into the
-/// step's already-large ViewBuilder made compilation explode.
+/// Names the categories that would still have no ideal if the plan were saved
+/// now. The step shows it only while that list is non-empty, so it drops each
+/// category as soon as something covers it and disappears with the last one.
+/// Kept as its own View so the type-checker solves it in isolation — inlining it
+/// into the step's already-large ViewBuilder made compilation explode.
 struct MissedCategoriesNotice: View {
-    /// Categories with no ideal if the plan were saved right now.
+    /// Categories with no ideal if the plan were saved right now. Never empty.
     let stillMissing: [String]
 
     /// "Fix", "Fix and Fun", "Fix, Family and Fun".
@@ -36,23 +37,15 @@ struct MissedCategoriesNotice: View {
     }
 
     var body: some View {
-        Group {
-            if stillMissing.isEmpty {
-                Text("You are all caught up now!")
-                    .font(.manrope(15, .heavy))
-                    .accentText(.blue)
-            } else {
-                Text(Self.message(stillMissing))
-                    .font(.manrope(15, .medium))
-                    .accentText(.pink)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 14)
-        .neuSunken(cornerRadius: 16)
-        .padding(.horizontal, LCMetrics.screenMargin)
-        .accessibilityElement(children: .combine)
+        Text(Self.message(stillMissing))
+            .font(.manrope(15, .medium))
+            .accentText(.pink)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
+            .neuSunken(cornerRadius: 16)
+            .padding(.horizontal, LCMetrics.screenMargin)
+            .accessibilityElement(children: .combine)
     }
 }

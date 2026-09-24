@@ -17,6 +17,10 @@ struct IdealReviewView: View {
     @StateObject private var viewModel: ReviewViewViewModel
     @Environment(\.dismiss) private var dismiss
 
+    /// The first-run tour has two steps on this screen, so it hosts them here
+    /// and tells the tour when the sheet is done with.
+    @ObservedObject private var walkthrough = WalkthroughCoordinator.shared
+
     /// 1.0 ... 7.0 — bound to the slider.
     @State private var reviewScore: Double
 
@@ -83,6 +87,9 @@ struct IdealReviewView: View {
             .padding(.bottom, 24)
         }
         .preferredColorScheme(.light)
+        .walkthroughHost(walkthrough, screen: .reviewSheet)
+        // Scored or skipped, the sheet closing is what moves the tour on.
+        .onDisappear { walkthrough.report(.finishedReview) }
     }
 
     private var submitButton: some View {
@@ -101,6 +108,7 @@ struct IdealReviewView: View {
                 .contentShape(Rectangle())
         }
         .accessibilityLabel("Submit and close")
+        .walkthroughSpot(.reviewSubmit)
     }
 
     // MARK: - Header
@@ -143,6 +151,7 @@ struct IdealReviewView: View {
             onCommit: { /* haptics handled internally */ }
         )
         .frame(height: 36)
+        .walkthroughSpot(.moodSlider)
     }
 }
 

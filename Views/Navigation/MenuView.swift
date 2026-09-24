@@ -36,12 +36,16 @@ struct MenuView: View {
                         markHelpAsSeen()
                         showHelpOnFirstLaunch = false
                         // After help, check if settings need to be shown
-                        checkAndShowSettingsIfNeeded()
+                        let settingsComing = checkAndShowSettingsIfNeeded()
+                        // Preferences leads into the tour when it is coming;
+                        // otherwise the tour follows the carousel straight away.
+                        if !settingsComing { startFirstLaunchTour() }
                     })
                 }
                 .sheet(isPresented: $showOnboardingSettings) {
                     OnboardingSettingsView(onSave: {
                         showOnboardingSettings = false
+                        startFirstLaunchTour()
                     })
                 }
         }else{
@@ -68,6 +72,7 @@ struct MenuView: View {
     // keys made every account after the first one on a device skip onboarding.
     private func checkAndShowOnboardingIfNeeded() {
         let uid = viewModel.currentUserId
+        WalkthroughCoordinator.shared.setUser(uid)
         guard !uid.isEmpty else {
             AppLogger.debug(AppLogger.ui, "[Onboarding] check skipped: uid empty")
             return
@@ -75,14 +80,25 @@ struct MenuView: View {
         let d = UserDefaults.standard
         AppLogger.debug(AppLogger.ui, "[Onboarding] check uid=\(uid) creation=\(String(describing: Auth.auth().currentUser?.metadata.creationDate)) userSeen=\(d.bool(forKey: OnboardingGate.seenHelpKey(uid: uid))) legacySeen=\(d.bool(forKey: OnboardingGate.legacySeenHelpKey))")
 
+        // Account age decides whether the guided tours run on their own: a
+        // returning user reinstalling the app knows it already.
+        let isNewAccount = OnboardingGate.isNewAccount(
+            creationDate: Auth.auth().currentUser?.metadata.creationDate)
+        WalkthroughCoordinator.shared.setAccountAge(isNewAccount: isNewAccount)
+
         let outcome = OnboardingGate.decide(.init(
-            isNewAccount: OnboardingGate.isNewAccount(
-                creationDate: Auth.auth().currentUser?.metadata.creationDate),
+            isNewAccount: isNewAccount,
             userSeenHelp: d.bool(forKey: OnboardingGate.seenHelpKey(uid: uid)),
             userCompletedSettings: d.bool(forKey: OnboardingGate.completedSettingsKey(uid: uid)),
             legacySeenHelp: d.bool(forKey: OnboardingGate.legacySeenHelpKey),
             legacyCompletedSettings: d.bool(forKey: OnboardingGate.legacyCompletedSettingsKey)
         ))
+
+        if outcome.markHelpSeen {
+            // The carousel is off, so record it as done — otherwise this
+            // decision would be taken again on every launch.
+            d.set(true, forKey: OnboardingGate.seenHelpKey(uid: uid))
+        }
 
         if outcome.migrateLegacyToUser {
             // Old account from the global-key era: adopt the device state as its
@@ -105,20 +121,35 @@ struct MenuView: View {
                 showOnboardingSettings = true
             }
         case .none:
-            break
+            // Nothing to set up. A brand-new account that has already been
+            // through preferences still gets its tour.
+            startFirstLaunchTour()
         }
     }
 
-    private func checkAndShowSettingsIfNeeded() {
+    /// - Returns: whether the preferences step is being presented.
+    @discardableResult
+    private func checkAndShowSettingsIfNeeded() -> Bool {
         let uid = viewModel.currentUserId
-        guard !uid.isEmpty else { return }
+        guard !uid.isEmpty else { return false }
         let hasCompletedSettings = UserDefaults.standard.bool(
             forKey: OnboardingGate.completedSettingsKey(uid: uid))
-        if !hasCompletedSettings {
-            // Small delay to ensure smooth transition
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                showOnboardingSettings = true
-            }
+        guard !hasCompletedSettings else { return false }
+        // Small delay to ensure smooth transition
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+            showOnboardingSettings = true
+        }
+        return true
+    }
+
+    /// The guided tour of the ideals list. The coordinator only lets it run for
+    /// a newly created account; everyone else starts it from Help.
+    private func startFirstLaunchTour() {
+        let uid = viewModel.currentUserId
+        guard !uid.isEmpty else { return }
+        WalkthroughCoordinator.shared.setUser(uid)
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+            WalkthroughCoordinator.shared.start(.firstLaunchTour, onboardingFinished: true)
         }
     }
 

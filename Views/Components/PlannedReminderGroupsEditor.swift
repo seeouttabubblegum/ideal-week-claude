@@ -79,7 +79,7 @@ struct PlannedReminderGroupsEditor: View {
             } label: {
                 Label("Add another reminder", systemImage: "plus.circle")
                     .font(.manrope(13, .heavy))
-                    .accentText(.pink)
+                    .foregroundColor(ReminderSchedulesEditor.addReminderColour)
             }
             .buttonStyle(.borderless)
         }

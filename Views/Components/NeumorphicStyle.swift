@@ -124,18 +124,24 @@ struct NeumorphicCompletionDot: View {
     let state: State
     var size: CGFloat = 18
 
+    /// Done dots are the primary and over-done dots the secondary — except that
+    /// neither takes the yellow that vanishes into the surface. Future hands the
+    /// primary to yellow and Past the secondary, so both end up blue done / pink
+    /// over.
+    static func fill(for state: State) -> Color {
+        switch state {
+        case .empty: return LCColor.surface
+        case .completed: return LCColor.chromatic(.pink, fallback: .blue)
+        case .overCompleted: return LCColor.chromatic(.blue, fallback: .pink)
+        }
+    }
+
     var body: some View {
-        let fill: Color = {
-            switch state {
-            case .empty: return LCColor.surface
-            case .completed: return LCColor.pink
-            case .overCompleted: return LCColor.blue
-            }
-        }()
+        let fill = Self.fill(for: state)
         let dark: Color = {
             switch state {
             case .empty: return LCColor.shadowDark
-            case .completed: return LCColor.pink
+            case .completed: return fill
             // Neutral, not a shade of the accent: the palette has three colours
             // and none of them is a darker blue.
             case .overCompleted: return Color.black.opacity(0.22)
@@ -144,7 +150,7 @@ struct NeumorphicCompletionDot: View {
         let light: Color = {
             switch state {
             case .empty: return LCColor.shadowLight
-            case .completed: return LCColor.pink
+            case .completed: return fill
             case .overCompleted: return Color.white.opacity(0.45)
             }
         }()

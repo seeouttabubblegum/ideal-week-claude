@@ -82,6 +82,17 @@ struct ReminderSchedulesEditor: View {
     /// Selectable days for the current week (typically `getRemainingDaysOfWeek(...)`).
     let days: [DayInfo]
 
+    /// Label on a selected day chip: white, unless the fill is so light that
+    /// white cannot separate from it at all — Future's yellow, at 1.06:1 — and
+    /// then ink.
+    static func selectedDayLabel(onFill fill: Color) -> Color {
+        LCColor.contrast(.white, fill) >= 1.5 ? .white : LCColor.ink
+    }
+
+    /// "Add another reminder": the primary, except that it never takes the
+    /// yellow that cannot be read on the surface — pink steps in there.
+    static var addReminderColour: Color { LCColor.chromatic(.pink) }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             ForEach(Array(viewModel.schedules.enumerated()), id: \.element.id) { index, schedule in
@@ -109,6 +120,9 @@ struct ReminderSchedulesEditor: View {
                                 let isSelected = schedule.days.contains(dayInfo.weekday)
                                 Button {
                                     viewModel.toggleDay(dayInfo.weekday, for: schedule.id)
+                                    // The first-run tour's "pick your days" step
+                                    // ends on a real day tap.
+                                    WalkthroughCoordinator.shared.report(.pickedReminderDay)
                                 } label: {
                                     VStack(spacing: 2) {
                                         Text(dayInfo.abbreviation)
@@ -117,7 +131,7 @@ struct ReminderSchedulesEditor: View {
                                         Text(dayInfo.dayNumber)
                                             .font(.manrope(11, .medium))
                                     }
-                                    .foregroundColor(isSelected ? .white : LCColor.ink)
+                                    .foregroundColor(isSelected ? Self.selectedDayLabel(onFill: accentColor) : LCColor.ink)
                                     .padding(.horizontal, 10)
                                     .padding(.vertical, 9)
                                     .frame(minWidth: 44)
@@ -145,7 +159,7 @@ struct ReminderSchedulesEditor: View {
             } label: {
                 Label("Add another reminder", systemImage: "plus.circle")
                     .font(.manrope(15, .heavy))
-                    .foregroundColor(accentColor)
+                    .foregroundColor(Self.addReminderColour)
             }
             .buttonStyle(.borderless)
         }

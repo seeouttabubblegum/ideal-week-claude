@@ -48,6 +48,14 @@ enum LCColor {
     /// the colour and this shadow together.
     static func textShadow(for role: LCHue) -> Color? { palette.textShadow(for: role) }
 
+    /// The role's colour for type on the surface, or ink where the palette has
+    /// handed that role the colour too light to read there. The colour
+    /// `.accentText(_:)` paints; for views that take a `Color` rather than a
+    /// modifier.
+    static func accentInk(_ role: LCHue) -> Color {
+        textShadow(for: role) != nil ? ink : resolved(role)
+    }
+
     /// A glyph sitting inside a filled shape — a boxed icon: the close X in its
     /// raised circle, the pencil on the profile's CTA button, the save
     /// checkmark.
@@ -227,9 +235,8 @@ struct AccentTextStyle: ViewModifier {
     func body(content: Content) -> some View {
         // On a coloured fill the pairing is the design's to make. Only on the
         // surface does an unreadable accent give way to ink.
-        let unreadableOnSurface = backdrop == nil && LCColor.textShadow(for: role) != nil
-        return content.foregroundColor(unreadableOnSurface ? LCColor.ink
-                                                           : LCColor.resolved(role))
+        content.foregroundColor(backdrop == nil ? LCColor.accentInk(role)
+                                                : LCColor.resolved(role))
     }
 }
 

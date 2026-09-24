@@ -51,10 +51,6 @@ struct PlanningSheetView: View {
     @State private var showCategoryCoverageWarning = false
     @State private var missingCategoryNames: [String] = []
     @State private var pendingMissedAnythingSave: (() -> Void)? = nil
-    /// Categories that had no ideal when the user landed on Missed Anything?.
-    /// Empty means they arrived fully covered, so the notice never appears; the
-    /// notice itself tracks what is STILL missing as drafts are added.
-    @State private var missedOnArrival: [String] = []
     @FocusState private var isPlanningReasonFieldFocused: Bool
 
     init(viewModel: PlanningSheetViewModel, ideals: [Ideal], wishlistIdeals: [Ideal], existingTargetWeekIdeals: [Ideal] = [], accentColor: Color, weekStartDay: String, isPresented: Binding<Bool>, unlockedWithPin: Bool, isWeeklyPrompt: Bool = false, targetsCurrentWeek: Bool = false, weeklyPromptWithExistingPlan: Bool = false, showOnlyMissedAnythingStep: Bool = false, reasonAlreadyProvidedFromParent: Bool = false, onReasonProvided: @escaping () -> Void = {}, onDismissedAfterSave: @escaping () -> Void = {}) {
@@ -182,18 +178,17 @@ struct PlanningSheetView: View {
     /// Categories that will have no ideal in the target week if save proceeds as-is.
     /// Combines existing target-week categories + selected Again? + selected wishlist + new drafts.
     private func missingCategoriesIfSavedNow() -> [String] {
-        let allCategoryNames = Category.allCases.map(\.rawValue)
-        var present = Set(existingTargetWeekIdeals.map(\.category))
+        var present = existingTargetWeekIdeals.map(\.category)
         for ideal in ideals where viewModel.selectedIdealIds.contains(ideal.id) {
-            present.insert(viewModel.getPlannedCategory(for: ideal.id, defaultCategory: ideal.category))
+            present.append(viewModel.getPlannedCategory(for: ideal.id, defaultCategory: ideal.category))
         }
         for ideal in wishlistIdeals where viewModel.selectedWishlistIdealIds.contains(ideal.id) {
-            present.insert(viewModel.wishlistCategories[ideal.id] ?? ideal.category)
+            present.append(viewModel.resolvedWishlistCategory(for: ideal))
         }
         for draft in viewModel.newIdealsToCreate where !draft.title.trimmingCharacters(in: .whitespaces).isEmpty {
-            present.insert(draft.category)
+            present.append(draft.category)
         }
-        return allCategoryNames.filter { !present.contains($0) }
+        return PlanCategoryCoverage.missing(from: present)
     }
 
     private var sortedNextWishlistIdeals: [Ideal] {
@@ -768,6 +763,7 @@ struct PlanningSheetView: View {
                 missedAnythingSaveButton
             }
 
+            ScrollViewReader { scroller in
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
                     // ADDING TO THIS WEEK section with added ideals (all except last)
@@ -782,20 +778,26 @@ struct PlanningSheetView: View {
 
                             VStack(spacing: 10) {
                                 ForEach(completedDrafts) { draft in
-                                    addedIdealCard(draft: draft)
+                                    addedIdealCard(draft: draft) {
+                                        withAnimation {
+                                            viewModel.reopenNewIdealDraft(id: draft.id)
+                                            scroller.scrollTo(Self.missedAnythingFormID, anchor: .top)
+                                        }
+                                    }
                                 }
                             }
                             .padding(.horizontal, LCMetrics.screenMargin)
                         }
                     }
 
-                    // Reactive coverage notice, sitting right above the "Add
-                    // Another Ideal" form so it stays next to where the user adds
-                    // ideals (not scrolled off the top as the added list grows).
-                    // Only for users who landed here with gaps; shrinks as drafts
-                    // cover each category.
-                    if !missedOnArrival.isEmpty {
-                        MissedCategoriesNotice(stillMissing: missingCategoriesIfSavedNow())
+                    // Coverage notice, right above the "Add Another Ideal" form so
+                    // it stays next to where the user adds ideals. It names what
+                    // is still empty across every step of this plan, updates as
+                    // ideals are added, removed or re-categorised, and disappears
+                    // once every category has something.
+                    let stillMissing = missingCategoriesIfSavedNow()
+                    if !stillMissing.isEmpty {
+                        MissedCategoriesNotice(stillMissing: stillMissing)
                     }
 
                     // Add another ideal section - always show form for last (current editing) draft
@@ -817,6 +819,7 @@ struct PlanningSheetView: View {
                                     .padding(.vertical, 12)
                             }
                             .padding(.horizontal, LCMetrics.screenMargin)
+                            .id(Self.missedAnythingFormID)
                         }
                     }
 
@@ -832,6 +835,9 @@ struct PlanningSheetView: View {
                         }
                     }
                     .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink, fill: LCColor.yellow, font: .manrope(18, .heavy)))
+                    // Nothing to add until the form has a title.
+                    .disabled(!MissedAnythingDrafts.canAddAnother(viewModel.newIdealsToCreate))
+                    .opacity(MissedAnythingDrafts.canAddAnother(viewModel.newIdealsToCreate) ? 1 : 0.5)
                     .padding(.horizontal, LCMetrics.screenMargin)
 
                     // Help text
@@ -867,10 +873,8 @@ struct PlanningSheetView: View {
             }
             // Dragging the page also dismisses the keyboard.
             .scrollDismissesKeyboard(.interactively)
+            }
         }
-        // Snapshot the gaps on landing: users who arrive fully covered never see
-        // the notice, and "all caught up" only makes sense if there WAS a gap.
-        .onAppear { missedOnArrival = missingCategoriesIfSavedNow() }
     }
 
     /// Resigns the first responder so any focused field (e.g. the new-ideal
@@ -1039,7 +1043,10 @@ struct PlanningSheetView: View {
         .padding(.vertical, 8)
     }
 
-    private func addedIdealCard(draft: PlanningSheetViewModel.NewIdealDraft) -> some View {
+    /// Scroll target for the "Add Another Ideal" form, so Edit can bring it into view.
+    private static let missedAnythingFormID = "missedAnythingForm"
+
+    private func addedIdealCard(draft: PlanningSheetViewModel.NewIdealDraft, onEdit: @escaping () -> Void) -> some View {
         HStack(spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(draft.title.isEmpty ? "Untitled" : draft.title)
@@ -1056,8 +1063,10 @@ struct PlanningSheetView: View {
             }
             Spacer()
             HStack(spacing: 12) {
+                // Brings this ideal back into the form below.
                 Button(action: {
                     HapticFeedback.impact()
+                    onEdit()
                 }) {
                     Text("Edit")
                         .font(.manrope(14, .heavy))
@@ -1245,7 +1254,7 @@ struct PlanningSheetView: View {
     private func wishlistItemDetails(ideal: Ideal) -> some View {
         VStack(alignment: .leading, spacing: 0) {
             categoryMenuRow(selection: Binding(
-                get: { viewModel.getWishlistCategory(for: ideal.id) },
+                get: { viewModel.getWishlistCategory(for: ideal) },
                 set: { viewModel.setWishlistCategory(for: ideal.id, value: $0) }
             ))
             howOftenRow(value: Binding(

@@ -37,14 +37,17 @@ class IdealHistoryDetailViewViewModel: ObservableObject {
 
         var updateData: [String: Any] = ["active": active]
         if !initialActiveState && active {
-            // Ideal is being reactivated - set startDate to current week start for history
-            let calendar = Calendar.current
-            let now = DateProviderService.shared.now()
-            let weekStart = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)) ?? now
-            updateData["startDate"] = calendar.startOfDay(for: weekStart).timeIntervalSince1970
+            // Ideal is being reactivated - set startDate to current week start for history.
+            // The week is the USER's, not the device locale's: this used to use
+            // Calendar.current's own first weekday while the duplicate check
+            // below used the setting, so a reactivated ideal could land in the
+            // wrong week for anyone whose week does not start on that day.
+            let effectiveWeekStartDay = weekStartDay ?? WeekdayUtility.defaultWeekStartDay
+            updateData["startDate"] = WeekdayUtility
+                .weekStart(for: DateProviderService.shared.now(), weekStartDay: effectiveWeekStartDay)
+                .timeIntervalSince1970
 
             // Check for duplicates in the current week before reactivating
-            let effectiveWeekStartDay = weekStartDay ?? WeekdayUtility.defaultWeekStartDay
             IdealDuplicateGuard.fetchCurrentWeekKeys(userId: uid, weekStartDay: effectiveWeekStartDay, excludingIds: [idealId]) { [weak self] result in
                 guard let self = self else { return }
                 switch result {

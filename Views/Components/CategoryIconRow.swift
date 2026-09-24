@@ -37,6 +37,9 @@ struct CategoryIconRow: View {
             // Reaching the category row means the title is finished being typed.
             hideKeyboard()
             selection = category.rawValue
+            // The first-run tour's category step ends on this tap, whether or
+            // not the choice actually changed.
+            WalkthroughCoordinator.shared.report(.pickedCategory)
         } label: {
             Image(category.lcCategoryIconV2())
                 .resizable()
