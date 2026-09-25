@@ -53,6 +53,9 @@ struct PlanningSheetView: View {
     @State private var pendingMissedAnythingSave: (() -> Void)? = nil
     @FocusState private var isPlanningReasonFieldFocused: Bool
 
+    /// Both Next? tours hand over here, and this screen has its own steps.
+    @ObservedObject private var walkthrough = WalkthroughCoordinator.shared
+
     init(viewModel: PlanningSheetViewModel, ideals: [Ideal], wishlistIdeals: [Ideal], existingTargetWeekIdeals: [Ideal] = [], accentColor: Color, weekStartDay: String, isPresented: Binding<Bool>, unlockedWithPin: Bool, isWeeklyPrompt: Bool = false, targetsCurrentWeek: Bool = false, weeklyPromptWithExistingPlan: Bool = false, showOnlyMissedAnythingStep: Bool = false, reasonAlreadyProvidedFromParent: Bool = false, onReasonProvided: @escaping () -> Void = {}, onDismissedAfterSave: @escaping () -> Void = {}) {
         self.viewModel = viewModel
         self.ideals = ideals
@@ -145,6 +148,27 @@ struct PlanningSheetView: View {
         } else {
             routeFromSelectionToNextAvailableScreen()
         }
+    }
+
+    /// A brand-new user's first plan opens with ONE ideal already in it, so
+    /// the step is not a blank form (client decision: one, not one per
+    /// category). Anyone who already has ideals opens empty, as before.
+    ///
+    /// - Returns: whether the starter was put in — the tour may only say so
+    ///   when it was.
+    @discardableResult
+    private func seedStarterIdealIfFirstPlan() -> Bool {
+        let hasAnyIdeals = !ideals.isEmpty
+            || !wishlistIdeals.isEmpty
+            || !existingTargetWeekIdeals.isEmpty
+        guard StarterPlanSuggestions.shouldOffer(seen: walkthrough.hasSeen(.firstPlanStarter),
+                                                 hasAnyIdeals: hasAnyIdeals),
+              viewModel.newIdealsToCreate.isEmpty else { return false }
+        viewModel.newIdealsToCreate = StarterPlanSuggestions.drafts()
+        // The last draft is always the one being edited, so the starter needs
+        // an empty row after it or it would be the form's contents instead.
+        viewModel.addNewIdealDraft()
+        return true
     }
 
     /// Initial routing for weekly prompt's Again? screens.
@@ -328,6 +352,21 @@ struct PlanningSheetView: View {
             // Neumorphic redesign: every screen draws its own HH Samuel header, so the system nav bar is hidden.
             .toolbar(.hidden, for: .navigationBar)
             .background(LCColor.surface.ignoresSafeArea())
+            .walkthroughHost(walkthrough, screen: .planningSheet)
+            .onAppear {
+                // Closes whichever Next? tour brought the user here, then this
+                // screen's own steps begin.
+                walkthrough.report(.openedPlanning)
+                let startedWithStarter = seedStarterIdealIfFirstPlan()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    walkthrough.startPlanningSheetTour(hasStarter: startedWithStarter)
+                    if viewModel.currentScreen == .createNewIdeals {
+                        // A brand-new plan opens straight on this step, so the
+                        // change above never fires.
+                        walkthrough.report(.reachedPlanningAdd)
+                    }
+                }
+            }
         }
         .alert(planningAlertTitle, isPresented: $showPlanningAlert) {
             Button("OK") {
@@ -357,6 +396,9 @@ struct PlanningSheetView: View {
         }
         .onChange(of: viewModel.currentScreen) { oldValue, newValue in
             viewModel.recordScreenShown(newValue)
+            // The tour's picks step ends here, on the step that adds ideals —
+            // its next card is about this screen.
+            if newValue == .createNewIdeals { walkthrough.report(.reachedPlanningAdd) }
             AppLogger.debug(AppLogger.ui, "[PlanningSheetView] screen changed \(oldValue) -> \(newValue)")
         }
         .onAppear {
@@ -497,6 +539,9 @@ struct PlanningSheetView: View {
                                 NeuHeartSelectButton(isSelected: viewModel.selectedIdealIds.contains(ideal.id)) {
                                     viewModel.toggleIdeal(ideal.id)
                                 }
+                                // The tour points at the first row's heart.
+                                .modifier(OptionalWalkthroughSpot(
+                                    spot: ideal.id == sortedAgainIdeals.first?.id ? .planPickHeart : nil))
                             }
                             .padding(.vertical, 15)
 
@@ -787,6 +832,7 @@ struct PlanningSheetView: View {
                                 }
                             }
                             .padding(.horizontal, LCMetrics.screenMargin)
+                            .walkthroughSpot(.starterIdeal)
                         }
                     }
 
@@ -820,6 +866,7 @@ struct PlanningSheetView: View {
                             }
                             .padding(.horizontal, LCMetrics.screenMargin)
                             .id(Self.missedAnythingFormID)
+                            .walkthroughSpot(.planAddForm)
                         }
                     }
 
@@ -900,6 +947,7 @@ struct PlanningSheetView: View {
             NeuCheckSaveButton(count: totalCount, diameter: 40) {
                 performMissedAnythingSave()
             }
+            .walkthroughSpot(.savePlanButton)
             .disabled(!viewModel.hasAnythingToSave() || viewModel.isSaving)
             .opacity(viewModel.hasAnythingToSave() ? 1 : 0.45)
         }

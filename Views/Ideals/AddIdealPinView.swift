@@ -30,6 +30,10 @@ struct AddIdealPinView: View {
     let storedPin: String?
     @Binding var isPresented: Bool
     let onSuccess: () -> Void
+
+    /// The locked Next? tour walks through this screen. The user types their
+    /// own PIN — the tour only says what to do and waits.
+    @ObservedObject private var walkthrough = WalkthroughCoordinator.shared
     let accentColor: Color
     let isForPlanning: Bool // Flag to indicate if PIN is for planning (parent will handle sheet dismissal)
     @FocusState private var focusedField: Int?
@@ -50,6 +54,19 @@ struct AddIdealPinView: View {
             } else {
                 reasonScreen
             }
+        }
+        // The locked Next? tour continues on this screen.
+        .walkthroughHost(walkthrough, screen: .pinScreen)
+        .onAppear { walkthrough.report(.openedPinScreen) }
+        // Closed without getting through: the tour must not sit waiting on a
+        // screen that is gone.
+        .onDisappear { walkthrough.report(.closedPinScreen) }
+        // The reason step appears once the PIN is accepted (set or entered).
+        .onChange(of: showPlanningReasonOnPinScreen) { _, showing in
+            if showing { walkthrough.report(.pinAccepted) }
+        }
+        .onChange(of: viewModel.currentScreen) { _, screen in
+            if screen == .reason { walkthrough.report(.pinAccepted) }
         }
     }
 
@@ -161,6 +178,7 @@ struct AddIdealPinView: View {
                     }
                 }
                 .padding(.horizontal)
+                .walkthroughSpot(.pinEntry)
                 .overlay(
                     TextField("", text: Binding(
                         get: { viewModel.enteredPinFromDigits },
@@ -312,6 +330,7 @@ struct AddIdealPinView: View {
                     .padding(.horizontal)
                 }
                 .padding(.top, 24)
+                .walkthroughSpot(.pinReason)
             }
 
                         Spacer(minLength: 0)

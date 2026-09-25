@@ -89,7 +89,7 @@ struct OfferCodeView: View {
                         .padding(.bottom, 10)
 
                     VStack(spacing: 0) {
-                        redeemStep("1.", "Make sure you're signed in with a valid account in Settings > App Store")
+                        redeemStep("1.", SubscriptionCopy.redeemStepSignedIn)
                         NeuFeatheredDivider()
                             .padding(.horizontal, 16)
                         redeemStep("2.", "Tap the button below to open the redemption sheet")
@@ -133,7 +133,7 @@ struct OfferCodeView: View {
                             if subscriptionManager.hasActiveSubscription {
                                 dismiss()
                             } else {
-                                errorMessage = "No active subscription found. Please redeem an offer code or subscribe. If you just redeemed a code, wait a few seconds and try again."
+                                errorMessage = SubscriptionCopy.noSubscriptionYet
                                 showError = true
                             }
                         }

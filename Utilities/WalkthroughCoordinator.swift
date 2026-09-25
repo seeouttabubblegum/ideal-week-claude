@@ -91,16 +91,32 @@ final class WalkthroughCoordinator: ObservableObject {
         raiseRequestOfCurrentStep()
     }
 
-    /// Called when the ideals list appears. Starts the list tour only after a
-    /// replay — its normal start is the end of onboarding.
     /// The Next? page tour — the first time that page is opened, and only once
     /// the list tour is behind the user (it is a separate lesson, not part of
     /// the first run).
-    func startNextPageTour() {
-        guard hasSeen(.firstLaunchTour), !hasSeen(.nextTab) else { return }
-        start(.nextTab, onboardingFinished: true, asked: true)
+    ///
+    /// - Parameter isLocked: the page is offering "Unlock Next Week's Plan"
+    ///   rather than a plan that can start now. The two situations teach
+    ///   different things, so they are two tours and each runs once.
+    func startNextPageTour(isLocked: Bool) {
+        let walkthrough: Walkthrough = isLocked ? .nextPageLocked : .nextPageOpen
+        guard hasSeen(.firstLaunchTour), !hasSeen(walkthrough) else { return }
+        start(walkthrough, onboardingFinished: true, asked: true)
     }
 
+    /// The planning flow's own steps, where both Next? tours hand over.
+    ///
+    /// - Parameter hasStarter: the plan opened with one ideal already in it
+    ///   (a brand-new user, `StarterPlanSuggestions`). Only then may the tour
+    ///   say so. Either version counts as the planning lesson, so whichever
+    ///   one runs, the other never does.
+    func startPlanningSheetTour(hasStarter: Bool = false) {
+        guard !hasSeen(.firstPlan), !hasSeen(.firstPlanStarter) else { return }
+        start(hasStarter ? .firstPlanStarter : .firstPlan, onboardingFinished: true, asked: true)
+    }
+
+    /// Called when the ideals list appears. Starts the list tour only after a
+    /// replay — its normal start is the end of onboarding.
     func startOnListAppear() {
         guard replayRequested else { return }
         replayRequested = false

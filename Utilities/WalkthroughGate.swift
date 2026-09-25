@@ -15,10 +15,17 @@ enum Walkthrough: String, CaseIterable {
     /// The ideals list, right after onboarding finishes — and straight through
     /// the New Ideal screen, where the user types and saves a real first ideal.
     case firstLaunchTour
-    /// The Next? page, the first time it opens.
-    case nextTab
-    /// The first plan — the "Missed Anything?" step with a starter ideal in it.
+    /// The Next? page when next week is locked behind the PIN — the tour walks
+    /// through setting it, then into planning.
+    case nextPageLocked
+    /// The Next? page when planning can start right away.
+    case nextPageOpen
+    /// The first plan, for someone who already has ideals: picking what comes
+    /// with them, then the "Missed Anything?" step.
     case firstPlan
+    /// The first plan for a brand-new user, whose plan opens with one starter
+    /// ideal already in it — the one claim the other version must not make.
+    case firstPlanStarter
 }
 
 enum WalkthroughGate {
@@ -45,7 +52,7 @@ enum WalkthroughGate {
         guard !seen, isNewAccount else { return false }
         switch walkthrough {
         case .firstLaunchTour: return onboardingFinished
-        case .nextTab, .firstPlan: return true
+        case .nextPageLocked, .nextPageOpen, .firstPlan, .firstPlanStarter: return true
         }
     }
 }

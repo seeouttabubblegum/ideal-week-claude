@@ -164,7 +164,7 @@ struct WalkthroughOverlay: View {
                 .onAppear { pulsing = true }
         }
 
-        if isWaiting {
+        if isWaiting && step.blocksScreen {
             ForEach(Array(blockingRects(in: size).enumerated()), id: \.offset) { _, rect in
                 Color.clear
                     .contentShape(Rectangle())
@@ -172,7 +172,7 @@ struct WalkthroughOverlay: View {
                     .offset(x: rect.minX, y: rect.minY)
                     .accessibilityHidden(true)
             }
-        } else {
+        } else if !isWaiting {
             Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture { onNext() }
@@ -225,7 +225,7 @@ struct WalkthroughOverlay: View {
 
                 Spacer(minLength: 8)
 
-                if !isLastStep {
+                if WalkthroughCardControls.showsSkip(isLastStep: isLastStep, isWaiting: isWaiting) {
                     Button("Skip", action: onSkip)
                         .font(.manrope(14, .heavy))
                         .foregroundColor(LCColor.accentInk(.pink))

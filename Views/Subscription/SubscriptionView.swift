@@ -120,7 +120,7 @@ struct SubscriptionView: View {
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal)
                             } else {
-                                Text("Products may not be configured in App Store Connect yet, or you may need to sign in with a sandbox account.")
+                                Text(SubscriptionCopy.optionsUnavailable)
                                     .font(.manrope(13, .medium))
                                     .foregroundColor(LCColor.textSecondary)
                                     .multilineTextAlignment(.center)
@@ -207,7 +207,7 @@ struct SubscriptionView: View {
                             .foregroundColor(LCColor.textMuted)
                             .multilineTextAlignment(.center)
 
-                        Text("Note: Purchases use the Apple ID signed in to Settings > App Store on this device.")
+                        Text(SubscriptionCopy.accountNote)
                             .font(.manrope(10, .medium))
                             .foregroundColor(LCColor.textMuted)
                             .multilineTextAlignment(.center)
@@ -250,7 +250,7 @@ struct SubscriptionView: View {
                 dismiss()
             }
         } catch {
-            errorMessage = "Purchase failed: \(error.localizedDescription)"
+            errorMessage = SubscriptionCopy.purchaseFailed
             showError = true
         }
 

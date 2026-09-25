@@ -137,7 +137,8 @@ class SubscriptionManager: ObservableObject {
                 - Wrong sandbox account signed in
                 - StoreKit Configuration file interfering (set schema to "None" in Xcode)
                 """
-                errorMessage = "No products found. Please check your App Store Connect configuration. Product IDs: idealweekapp, idealweekappyearly. Ensure StoreKit Configuration schema is set to 'None' in Xcode."
+                // The detail below goes to the log; the screen gets something a user can act on.
+                errorMessage = SubscriptionCopy.optionsUnavailable
                 logDebug("===========================================")
                 logError("WARNING: NO PRODUCTS LOADED")
                 logDebug("===========================================")
@@ -180,7 +181,7 @@ class SubscriptionManager: ObservableObject {
             3. Ensure product is associated with correct bundle ID
             4. Check if signed in with correct sandbox account
             """
-            errorMessage = "Failed to load products: \(error.localizedDescription)"
+            errorMessage = SubscriptionCopy.optionsLoadFailed
             logDebug("===========================================")
             logError("ERROR LOADING PRODUCTS:")
             logDebug("===========================================")
@@ -297,7 +298,7 @@ class SubscriptionManager: ObservableObject {
             try await AppStore.sync()
             await updatePurchasedProducts()
         } catch {
-            errorMessage = "Failed to restore purchases: \(error.localizedDescription)"
+            errorMessage = SubscriptionCopy.restoreFailed
         }
         
         isLoading = false
@@ -309,7 +310,7 @@ class SubscriptionManager: ObservableObject {
         // Present the offer code redemption sheet using StoreKit
         Task { @MainActor in
             guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
-                errorMessage = "Unable to access window scene. Please try again."
+                errorMessage = SubscriptionCopy.redeemSheetUnavailable
                 return
             }
             
@@ -322,11 +323,12 @@ class SubscriptionManager: ObservableObject {
                 await updatePurchasedProducts()
             } catch {
                 let errorDesc = error.localizedDescription
-                // Provide helpful error message for common issues
+                // Two things a user can check: their connection, and whether
+                // they are signed in. The rest goes to the log.
                 if errorDesc.contains("connect") || errorDesc.contains("network") {
-                    errorMessage = "Cannot connect to App Store. Please check your internet connection and make sure you're signed in with a sandbox tester account in Settings > App Store."
+                    errorMessage = SubscriptionCopy.offline
                 } else {
-                    errorMessage = "Failed to open offer code redemption: \(errorDesc). Make sure you're signed in with a sandbox account and offer codes are configured in App Store Connect."
+                    errorMessage = SubscriptionCopy.redeemSheetUnavailable
                 }
                 logError("Error presenting offer code redemption: \(error)")
             }

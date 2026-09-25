@@ -2138,8 +2138,13 @@ struct IdealListView: View {
                     // is opened after the first-run one.
                     .walkthroughHost(walkthrough, screen: .nextPage)
                     .onAppear {
+                        // Locked or open changes what there is to teach, so the
+                        // page picks which tour runs.
+                        let locked = nextPlanningLayout(
+                            hasExistingPlanForNextWeek: !nextWeekPlannedItems.isEmpty
+                        ).nextWeek.isLocked
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                            walkthrough.startNextPageTour()
+                            walkthrough.startNextPageTour(isLocked: locked)
                         }
                     }
                     .toolbar(.hidden, for: .navigationBar)
