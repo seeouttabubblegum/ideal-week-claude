@@ -9,8 +9,12 @@ import SwiftUI
 
 /// Handoff 27-7n: bottom-pinned neumorphic card over the dimmed list.
 /// "WHAT DO YOU WANNA DO THIS WEEK?" in HH Samuel, raised YELLOW
-/// "Pick For Me To Plan" pill + neutral raised "Skip For Now" pill.
+/// "Let Me Pick" pill + neutral raised "Skip For Now" pill.
 struct WeeklyChoicePromptOverlay: View {
+    /// Client, 2026-09-29 (was "Pick For Me To Plan"): the user picks.
+    static let pickLabel = "Let Me Pick"
+    static let skipLabel = "Skip For Now"
+
     let subtitle: String
     let onPick: () -> Void
     let onSkip: () -> Void
@@ -37,12 +41,12 @@ struct WeeklyChoicePromptOverlay: View {
                     .padding(.top, 12)
 
                 VStack(spacing: 14) {
-                    Button("Pick For Me To Plan", action: onPick)
+                    Button(Self.pickLabel, action: onPick)
                         .buttonStyle(NeumorphicButtonStyle(
                             tint: LCColor.pink, fill: LCColor.yellow,
                             verticalPadding: 17, font: .manrope(18, .heavy)))
 
-                    Button("Skip For Now", action: onSkip)
+                    Button(Self.skipLabel, action: onSkip)
                         .buttonStyle(NeumorphicButtonStyle(
                             tint: LCColor.blue,
                             verticalPadding: 16, font: .manrope(17, .heavy)))
@@ -54,8 +58,9 @@ struct WeeklyChoicePromptOverlay: View {
             .background(
                 RoundedRectangle(cornerRadius: LCRadius.sheetTop, style: .continuous)
                     .fill(LCColor.surface)
-                    .shadow(color: LCColor.shadowDark, radius: 11, x: 8, y: 8)
-                    .shadow(color: LCColor.shadowLight, radius: 8, x: -6, y: -6)
+                    // No shadow at all (client, 2026-09-29): over the dimmed
+                    // list both halves of the neumorphic pair read as a white
+                    // glow around the card — the "dark" one is a pale grey too.
             )
             .padding(.horizontal, 20)
             .padding(.bottom, 34)

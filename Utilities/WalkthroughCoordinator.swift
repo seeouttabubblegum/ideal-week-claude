@@ -29,6 +29,14 @@ struct WalkthroughStore {
             defaults.removeObject(forKey: WalkthroughGate.seenKey(walkthrough, uid: uid))
         }
     }
+
+    func tipsRequested(uid: String) -> Bool {
+        defaults.bool(forKey: WalkthroughGate.tipsRequestedKey(uid: uid))
+    }
+
+    func setTipsRequested(uid: String) {
+        defaults.set(true, forKey: WalkthroughGate.tipsRequestedKey(uid: uid))
+    }
 }
 
 @MainActor
@@ -52,11 +60,17 @@ final class WalkthroughCoordinator: ObservableObject {
     /// without this the list would never offer it a second time.
     private var replayRequested = false
 
+    /// The user turned the tips back on (Help's "Show tips again", or the test
+    /// link). Stored per user, so it holds after the app is closed. It is what
+    /// lets an existing user — or a new one past the two weeks — see the tours.
+    private var tipsRequested: Bool { !uid.isEmpty && store.tipsRequested(uid: uid) }
+
     private let store: WalkthroughStore
     private(set) var uid: String
-    /// Whether this account was created recently. Tours only start on their own
-    /// for new accounts; a returning user can still ask for them.
-    private(set) var isNewAccount = false
+    /// Whether tours may start on their own for this user
+    /// (`WalkthroughGate.allowsAutomaticTours`): a new user, within two weeks
+    /// of installing. Anyone else gets them only by asking, from Help.
+    private(set) var automaticAllowed = false
 
     init(store: WalkthroughStore = .standard, uid: String = "") {
         self.store = store
@@ -69,8 +83,8 @@ final class WalkthroughCoordinator: ObservableObject {
         run = nil
     }
 
-    func setAccountAge(isNewAccount: Bool) {
-        self.isNewAccount = isNewAccount
+    func setAutomaticTours(allowed: Bool) {
+        automaticAllowed = allowed
     }
 
     /// Start `walkthrough` if this user has not had it. Never interrupts one
@@ -83,7 +97,7 @@ final class WalkthroughCoordinator: ObservableObject {
         guard asked || WalkthroughGate.shouldRun(walkthrough,
                                                  seen: store.isSeen(walkthrough, uid: uid),
                                                  onboardingFinished: onboardingFinished,
-                                                 isNewAccount: isNewAccount) else { return }
+                                                 automaticAllowed: automaticAllowed) else { return }
         createdIdealTitle = nil
         withAnimation(.easeOut(duration: 0.25)) {
             run = WalkthroughRun(walkthrough: walkthrough)
@@ -101,7 +115,9 @@ final class WalkthroughCoordinator: ObservableObject {
     func startNextPageTour(isLocked: Bool) {
         let walkthrough: Walkthrough = isLocked ? .nextPageLocked : .nextPageOpen
         guard hasSeen(.firstLaunchTour), !hasSeen(walkthrough) else { return }
-        start(walkthrough, onboardingFinished: true, asked: true)
+        // New accounts, or someone who asked — never a returning account on
+        // its own.
+        start(walkthrough, onboardingFinished: true, asked: tipsRequested)
     }
 
     /// The planning flow's own steps, where both Next? tours hand over.
@@ -112,7 +128,10 @@ final class WalkthroughCoordinator: ObservableObject {
     ///   one runs, the other never does.
     func startPlanningSheetTour(hasStarter: Bool = false) {
         guard !hasSeen(.firstPlan), !hasSeen(.firstPlanStarter) else { return }
-        start(hasStarter ? .firstPlanStarter : .firstPlan, onboardingFinished: true, asked: true)
+        // Same rule as the Next? tours. This used to pass `asked: true`, which
+        // skipped the new-account check, so every TestFlight account met the
+        // planning tour the next time the weekly prompt opened planning.
+        start(hasStarter ? .firstPlanStarter : .firstPlan, onboardingFinished: true, asked: tipsRequested)
     }
 
     /// Called when the ideals list appears. Starts the list tour only after a
@@ -168,6 +187,7 @@ final class WalkthroughCoordinator: ObservableObject {
     func replayAll() {
         store.resetAll(uid: uid)
         replayRequested = true
+        if !uid.isEmpty { store.setTipsRequested(uid: uid) }
         run = nil
     }
 
@@ -177,8 +197,12 @@ final class WalkthroughCoordinator: ObservableObject {
             withAnimation(.easeOut(duration: 0.2)) { run = nil }
             request = nil
         } else {
+            // A step's request (open the New Ideal form) is made once, on
+            // entering the step — not again on every letter typed there, which
+            // reopened the form after it had been saved and closed.
+            let enteredNewStep = current.step?.id != run?.step?.id
             run = current
-            raiseRequestOfCurrentStep()
+            if enteredNewStep { raiseRequestOfCurrentStep() }
         }
     }
 

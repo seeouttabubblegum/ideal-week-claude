@@ -742,7 +742,9 @@ struct SettingsView: View {
         completion: @escaping () -> Void
     ) {
         let now = Date()
-        let calendar = Calendar.current
+        // The startDates written below are week boundaries, so they are
+        // counted in the pinned week zone like every other one.
+        let calendar = WeekdayUtility.weekCalendar(firstWeekday: newWeekStartDay)
         let todayStart = calendar.startOfDay(for: now)
 
         let oldCurrentWeekStart = WeekdayUtility.weekStart(for: now, weekStartDay: oldWeekStartDay)

@@ -50,6 +50,11 @@ struct The_Ideal_WeekApp: App {
     let container: ModelContainer
 
     init() {
+        // Before anyone can sign in, so a new user's account always postdates
+        // it — the guided tours tell new users from existing ones by this.
+        AppInstallDate.recordIfNeeded()
+        // Pin the zone weeks are counted in before anything reads a week.
+        _ = WeekTimeZone.current
         do {
             let schema = Schema([MainSettings.self, UserProfileSettings.self])
             let configuration = ModelConfiguration(

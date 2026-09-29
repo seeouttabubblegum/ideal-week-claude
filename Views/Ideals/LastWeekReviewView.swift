@@ -68,8 +68,7 @@ struct LastWeekReviewView: View {
         if let maxStartDate = lastWeekIdeals.map({ $0.startDate }).filter({ $0 > 0 }).max() {
             let anchor = Date(timeIntervalSince1970: maxStartDate)
             let start = WeekdayUtility.weekStart(for: anchor, weekStartDay: weekStartDay)
-            let customCalendar = WeekdayUtility.calendar(firstWeekday: weekStartDay)
-            let end = (customCalendar.date(byAdding: .day, value: 6, to: start) ?? start).endOfDay
+            let end = WeekdayUtility.weekEnd(forWeekStart: start, weekStartDay: weekStartDay)
             return (start.timeIntervalSince1970, end.timeIntervalSince1970)
         }
         let range = WeekdayUtility.previousWeekRange(weekStartDay: weekStartDay)
@@ -495,16 +494,19 @@ struct LastWeekReviewView: View {
     // Ring color for category
     private func categoryRingColor(for category: Category) -> Color {
         // Palette-only ring colors (no green / orange / purple in this system).
-        // Cycled so adjacent rings never share a colour. Must stay identical to
-        // HistoryProgressView.categoryRingColor — that diagram is the standard.
+        // Each category keeps its colour wherever it sits. With all seven
+        // showing (… Family, Fun, Finance) adjacent rings never share one;
+        // empty categories drop out, so two can meet when some are missing.
+        // Must stay identical to HistoryProgressView.categoryRingColor — that
+        // diagram is the standard.
         switch category {
         case .fix:       return LCColor.pink
         case .fitness:   return LCColor.blue
         case .feelings:  return LCColor.yellow
         case .faculties: return LCColor.pink
         case .family:    return LCColor.blue
-        case .finance:   return LCColor.yellow
         case .fun:       return LCColor.pink
+        case .finance:   return LCColor.yellow
         }
     }
     
@@ -686,7 +688,7 @@ struct LastWeekReviewView: View {
     
     @ViewBuilder
     private var overallProgressContent: some View {
-        let allCategories: [Category] = [.fix, .fitness, .feelings, .faculties, .family, .finance, .fun]
+        let allCategories = Category.allCases
         let categoriesWithArcs = allCategories.filter { category in
             let categoryIdeals = lastWeekCategoryIdeals(for: category)
             return !categoryIdeals.isEmpty

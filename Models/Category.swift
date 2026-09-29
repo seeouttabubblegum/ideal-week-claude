@@ -12,8 +12,11 @@ enum Category: String, CaseIterable, Identifiable {
     case feelings = "Feelings"
     case faculties = "Faculties"
     case family = "Family"
-    case finance = "Finance"
+    // Fun before Finance: the client reorganised the book's "F Everything
+    // Else" group (2026-09-29). Every list of categories in the app reads this
+    // order. Ideals store the NAME, never the position, so reordering is safe.
     case fun = "Fun"
+    case finance = "Finance"
     var id: Self { self }
     
     var subheading: String {
@@ -28,10 +31,10 @@ enum Category: String, CaseIterable, Identifiable {
                 return "How are you going to sharpen your thoughts this week?"
             case .family:
                 return "What will you do this week to improve the relationships with the people you love?"
-            case .finance:
-                return "What financial impact can you make this week to your bottomline?"
             case .fun:
                 return "How are you letting loose this week?"
+            case .finance:
+                return "What financial impact can you make this week to your bottomline?"
         }
     }
 

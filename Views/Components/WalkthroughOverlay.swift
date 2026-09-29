@@ -37,8 +37,10 @@ extension View {
     /// Draws the running walkthrough over this screen. `screen` is which one
     /// this is: a step belonging to the New Ideal form must not be drawn by the
     /// list underneath it.
+    ///
+    /// A nil `screen` draws nothing — for a screen with no steps of its own.
     func walkthroughHost(_ coordinator: WalkthroughCoordinator,
-                         screen: WalkthroughScreen = .idealsList) -> some View {
+                         screen: WalkthroughScreen? = .idealsList) -> some View {
         modifier(WalkthroughHost(coordinator: coordinator, screen: screen))
     }
 }
@@ -59,15 +61,20 @@ struct OptionalWalkthroughSpot: ViewModifier {
 
 private struct WalkthroughHost: ViewModifier {
     @ObservedObject var coordinator: WalkthroughCoordinator
-    let screen: WalkthroughScreen
+    let screen: WalkthroughScreen?
 
     func body(content: Content) -> some View {
         content.overlayPreferenceValue(WalkthroughAnchorKey.self) { anchors in
             GeometryReader { proxy in
                 if let run = coordinator.run, let step = run.step, step.screen == screen {
+                    let target = step.spot.flatMap { anchors[$0] }.map { proxy[$0] }
                     WalkthroughOverlay(
                         step: step,
-                        target: step.spot.flatMap { anchors[$0] }.map { proxy[$0] },
+                        target: target,
+                        cardTarget: step.cardAnchor.flatMap { anchors[$0] }.map { proxy[$0] } ?? target,
+                        escape: anchors[.screenClose].map { proxy[$0] },
+                        keepsControlLive: run.keepsControlLive,
+                        nextEnabled: !run.nextIsLocked,
                         isLastStep: run.isOnLastStep,
                         stepNumber: run.index + 1,
                         stepCount: run.walkthrough.steps.count,
@@ -95,6 +102,16 @@ struct WalkthroughOverlay: View {
     /// Where the highlighted control is, in this screen's coordinates. Nil for
     /// steps that explain the page rather than a control.
     let target: CGRect?
+    /// What the card is placed against — usually `target`; the slider card
+    /// uses the whole scale so it clears the numbers.
+    let cardTarget: CGRect?
+    /// The screen's close button — left usable while a step waits.
+    let escape: CGRect?
+    /// The lit control stays usable (a waiting step, or a Next that unlocks
+    /// on something done there).
+    let keepsControlLive: Bool
+    /// False while the step's Next is still locked.
+    let nextEnabled: Bool
     let isLastStep: Bool
     let stepNumber: Int
     let stepCount: Int
@@ -152,7 +169,7 @@ struct WalkthroughOverlay: View {
 
         // A step that is waiting flashes its control, so "drag the knob" points
         // somewhere the eye has already gone.
-        if isWaiting, let target {
+        if keepsControlLive, let target {
             RoundedRectangle(cornerRadius: 18, style: .continuous)
                 .stroke(LCColor.chromatic(.pink), lineWidth: 3)
                 .frame(width: target.width + halo * 2, height: target.height + halo * 2)
@@ -164,36 +181,22 @@ struct WalkthroughOverlay: View {
                 .onAppear { pulsing = true }
         }
 
-        if isWaiting && step.blocksScreen {
-            ForEach(Array(blockingRects(in: size).enumerated()), id: \.offset) { _, rect in
-                Color.clear
-                    .contentShape(Rectangle())
-                    .frame(width: rect.width, height: rect.height)
-                    .offset(x: rect.minX, y: rect.minY)
-                    .accessibilityHidden(true)
-            }
-        } else if !isWaiting {
+        if step.leavesScreenLive {
+            // Nothing blocked: the card explains, the screen works as normal.
+            EmptyView()
+        } else if keepsControlLive {
+            // Blocks everything except the lit control and the close button.
+            Color.clear
+                .frame(width: size.width, height: size.height)
+                .contentShape(PunchedOut(holes: WalkthroughHitArea.liveRects(
+                    target: target, escape: escape, halo: halo)), eoFill: true)
+                .accessibilityHidden(true)
+        } else {
             Color.clear
                 .contentShape(Rectangle())
                 .onTapGesture { onNext() }
                 .accessibilityHidden(true)
         }
-    }
-
-    /// The screen minus the lit control: four bands that swallow touches, so a
-    /// waiting step cannot be tapped past but its control still works.
-    private func blockingRects(in size: CGSize) -> [CGRect] {
-        guard let target else { return [CGRect(origin: .zero, size: size)] }
-        let hole = target.insetBy(dx: -halo, dy: -halo)
-        return [
-            CGRect(x: 0, y: 0, width: size.width, height: max(0, hole.minY)),
-            CGRect(x: 0, y: min(size.height, hole.maxY),
-                   width: size.width, height: max(0, size.height - hole.maxY)),
-            CGRect(x: 0, y: max(0, hole.minY),
-                   width: max(0, hole.minX), height: max(0, hole.height)),
-            CGRect(x: min(size.width, hole.maxX), y: max(0, hole.minY),
-                   width: max(0, size.width - hole.maxX), height: max(0, hole.height)),
-        ].filter { $0.width > 0 && $0.height > 0 }
     }
 
     @ViewBuilder
@@ -240,6 +243,8 @@ struct WalkthroughOverlay: View {
                                                            verticalPadding: 10,
                                                            font: .manrope(15, .heavy)))
                         .fixedSize()
+                        .disabled(!nextEnabled)
+                        .opacity(nextEnabled ? 1 : 0.4)
                 }
             }
             .padding(.top, 2)
@@ -268,7 +273,7 @@ struct WalkthroughOverlay: View {
     private func cardOrigin(in size: CGSize) -> CGPoint {
         let margin: CGFloat = 16
         let gap: CGFloat = 20
-        guard let target else {
+        guard let target = cardTarget else {
             return CGPoint(x: (size.width - cardWidth) / 2,
                            y: max(margin, (size.height - cardHeight) / 2))
         }
@@ -284,6 +289,12 @@ struct WalkthroughOverlay: View {
             // The step opens the keyboard, so below is not an option even when
             // it looks like there is room.
             y = fitsAbove ? above : margin
+        case .below:
+            // Never over what sits under the control; if the screen runs out,
+            // the card stays as low as it can rather than jumping on top.
+            y = WalkthroughCardPlacement.belowY(targetMaxY: target.maxY, cardHeight: cardHeight,
+                                                screenHeight: size.height, halo: halo,
+                                                gap: gap, margin: margin)
         case .auto:
             if fitsBelow {
                 y = below
@@ -339,5 +350,19 @@ struct WalkthroughIllustrationView: View {
         .neuSunken(cornerRadius: 12)
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(title): \(note)")
+    }
+}
+
+/// The screen with holes in it, for hit-testing with an even-odd fill: touches
+/// in a hole go through to the app, everything else is swallowed.
+private struct PunchedOut: Shape {
+    let holes: [CGRect]
+
+    func path(in rect: CGRect) -> Path {
+        var path = Path(rect)
+        for hole in holes {
+            path.addRoundedRect(in: hole, cornerSize: CGSize(width: 18, height: 18))
+        }
+        return path
     }
 }

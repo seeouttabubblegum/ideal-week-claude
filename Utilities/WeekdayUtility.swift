@@ -57,34 +57,74 @@ enum WeekdayUtility {
         return cal
     }
 
+    // MARK: - Week boundaries (pinned time zone)
+    //
+    // Which WEEK something belongs to is counted in `WeekTimeZone`, not the
+    // phone's current zone — see WeekTimeZone.swift. `calendar(firstWeekday:)`
+    // above stays local, for days and reminder times.
+
+    private static var weekCalendarCache: [String: Calendar] = [:]
+
+    /// The calendar week boundaries are computed in.
+    static func weekCalendar(firstWeekday weekStartDay: String,
+                             timeZone: TimeZone = WeekTimeZone.current) -> Calendar {
+        let idx = weekdayIndex(for: weekStartDay)
+        let cacheKey = "\(Calendar.current.identifier)|\(idx)|\(timeZone.identifier)"
+        if let cached = weekCalendarCache[cacheKey] { return cached }
+        var cal = Calendar.current
+        cal.firstWeekday = idx
+        cal.timeZone = timeZone
+        weekCalendarCache[cacheKey] = cal
+        return cal
+    }
+
     static func weekStart(for date: Date = DateProviderService.shared.now(), weekStartDay: String) -> Date {
-        let customCalendar = calendar(firstWeekday: weekStartDay)
+        weekStart(for: date, weekStartDay: weekStartDay, timeZone: WeekTimeZone.current)
+    }
+
+    static func weekStart(for date: Date, weekStartDay: String, timeZone: TimeZone) -> Date {
+        let customCalendar = weekCalendar(firstWeekday: weekStartDay, timeZone: timeZone)
         let components = customCalendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date)
         let start = customCalendar.date(from: components) ?? date
         return customCalendar.startOfDay(for: start)
     }
 
+    /// The last second of the week that starts at `start` — 23:59:59 on its
+    /// seventh day, in the week's own time zone.
+    static func weekEnd(forWeekStart start: Date, weekStartDay: String,
+                        timeZone: TimeZone = WeekTimeZone.current) -> Date {
+        let next = nextWeekStart(after: start, calendar: weekCalendar(firstWeekday: weekStartDay, timeZone: timeZone))
+        return next.addingTimeInterval(-1)
+    }
+
+    /// Local midnight of the calendar date a week starts on. For the reminder
+    /// day pickers, which work in local days: a week that began Monday 00:00
+    /// in New York still starts on Monday in Los Angeles, not Sunday evening.
+    static func localDayStart(forWeekStart start: Date,
+                              weekTimeZone: TimeZone = WeekTimeZone.current,
+                              localCalendar: Calendar = .current) -> Date {
+        var pinned = Calendar(identifier: localCalendar.identifier)
+        pinned.timeZone = weekTimeZone
+        let ymd = pinned.dateComponents([.year, .month, .day], from: start)
+        return localCalendar.date(from: ymd).map { localCalendar.startOfDay(for: $0) } ?? localCalendar.startOfDay(for: start)
+    }
+
     static func currentWeekRange(for date: Date = DateProviderService.shared.now(), weekStartDay: String) -> (start: Date, end: Date) {
-        let customCalendar = calendar(firstWeekday: weekStartDay)
         let start = weekStart(for: date, weekStartDay: weekStartDay)
-        let end = (customCalendar.date(byAdding: .day, value: 6, to: start) ?? start).endOfDay
-        return (start, end)
+        return (start, weekEnd(forWeekStart: start, weekStartDay: weekStartDay))
     }
 
     static func nextWeekRange(for date: Date = DateProviderService.shared.now(), weekStartDay: String) -> (start: Date, end: Date) {
-        let customCalendar = calendar(firstWeekday: weekStartDay)
         let currentStart = weekStart(for: date, weekStartDay: weekStartDay)
-        let nextStart = customCalendar.date(byAdding: .day, value: 7, to: currentStart) ?? currentStart
-        let nextEnd = (customCalendar.date(byAdding: .day, value: 6, to: nextStart) ?? nextStart).endOfDay
-        return (customCalendar.startOfDay(for: nextStart), nextEnd)
+        let nextStart = nextWeekStart(after: currentStart, weekStartDay: weekStartDay)
+        return (nextStart, weekEnd(forWeekStart: nextStart, weekStartDay: weekStartDay))
     }
 
     static func previousWeekRange(for date: Date = DateProviderService.shared.now(), weekStartDay: String) -> (start: Date, end: Date) {
-        let customCalendar = calendar(firstWeekday: weekStartDay)
+        let customCalendar = weekCalendar(firstWeekday: weekStartDay)
         let currentStart = weekStart(for: date, weekStartDay: weekStartDay)
-        let previousStart = customCalendar.date(byAdding: .day, value: -7, to: currentStart) ?? currentStart
-        let previousEnd = (customCalendar.date(byAdding: .day, value: 6, to: previousStart) ?? previousStart).endOfDay
-        return (customCalendar.startOfDay(for: previousStart), previousEnd)
+        let previousStart = customCalendar.startOfDay(for: customCalendar.date(byAdding: .day, value: -7, to: currentStart) ?? currentStart)
+        return (previousStart, weekEnd(forWeekStart: previousStart, weekStartDay: weekStartDay))
     }
 
     /// Returns the week range containing the most recent ideal startDate that falls strictly before
@@ -101,10 +141,8 @@ enum WeekdayUtility {
         let eligible = startDates.lazy.filter { $0 > 0 && $0 < currentStartTs }
         guard let maxTs = eligible.max() else { return nil }
         let anchor = Date(timeIntervalSince1970: maxTs)
-        let customCalendar = calendar(firstWeekday: weekStartDay)
         let start = weekStart(for: anchor, weekStartDay: weekStartDay)
-        let end = (customCalendar.date(byAdding: .day, value: 6, to: start) ?? start).endOfDay
-        return (start, end)
+        return (start, weekEnd(forWeekStart: start, weekStartDay: weekStartDay))
     }
 
     /// Names a week as (year, week number).
@@ -116,7 +154,7 @@ enum WeekdayUtility {
     /// 2026-12-27 were both "2026-W1". That is the New Year bug: a brand-new
     /// week reading as one the app had already handled.
     static func weekIdentifier(for date: Date = DateProviderService.shared.now(), weekStartDay: String) -> (year: Int, week: Int) {
-        let customCalendar = calendar(firstWeekday: weekStartDay)
+        let customCalendar = weekCalendar(firstWeekday: weekStartDay)
         return (
             customCalendar.component(.yearForWeekOfYear, from: date),
             customCalendar.component(.weekOfYear, from: date)
@@ -128,7 +166,7 @@ enum WeekdayUtility {
     /// startDate sits exactly on a week boundary would fall in the wrong week by
     /// that hour. Use this for every "[week start, week end)" bound.
     static func nextWeekStart(after start: Date, weekStartDay: String) -> Date {
-        nextWeekStart(after: start, calendar: calendar(firstWeekday: weekStartDay))
+        nextWeekStart(after: start, calendar: weekCalendar(firstWeekday: weekStartDay))
     }
 
     /// Calendar-injected form, so the clock-change behaviour can be tested in a
@@ -152,7 +190,7 @@ enum WeekdayUtility {
 
     /// Day index since start of current week (S): 0 = S, 1 = S+1, ... 6 = S+6. For dates before S, returns 0.
     static func daysSinceWeekStart(from date: Date = DateProviderService.shared.now(), weekStartDay: String) -> Int {
-        let customCalendar = calendar(firstWeekday: weekStartDay)
+        let customCalendar = weekCalendar(firstWeekday: weekStartDay)
         let start = weekStart(for: date, weekStartDay: weekStartDay)
         let dayDiff = customCalendar.dateComponents([.day], from: start, to: date).day ?? 0
         return max(0, min(6, dayDiff))
@@ -161,7 +199,7 @@ enum WeekdayUtility {
     /// Planning window = last 2 days of the current week [S+5 start-of-day, S+7 start-of-day),
     /// using the user's selected week-start setting.
     static func isWithinPlanningWindow(from date: Date = DateProviderService.shared.now(), weekStartDay: String) -> Bool {
-        let customCalendar = calendar(firstWeekday: weekStartDay)
+        let customCalendar = weekCalendar(firstWeekday: weekStartDay)
         let weekStartDate = weekStart(for: date, weekStartDay: weekStartDay)
         guard
             let windowStart = customCalendar.date(byAdding: .day, value: 5, to: weekStartDate),

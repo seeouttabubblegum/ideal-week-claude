@@ -4,7 +4,7 @@
 //
 //  A compact dynamic circular-chart icon for the ideal-list header. Mirrors the
 //  ribbon/ring chart on the progress page, but GROUPED into the book's "3 Fs"
-//  (outer → center): F EVERYTHING ELSE (Family, Finance, Fun) · F ME (Fitness,
+//  (outer → center): F EVERYTHING ELSE (Family, Fun, Finance) · F ME (Fitness,
 //  Feelings, Faculties) · F THIS (Fix) at the CENTER pie (client decision
 //  2026-07-15). Per the neumorphic handoff the icon is two concentric
 //  palette-coloured rings around a central radial PIE that fills

@@ -47,6 +47,7 @@ struct NewIdealView: View {
                     newItemPresented = false
                     dismiss()
                 }
+                .walkthroughSpot(.screenClose)
                 Spacer()
                 NeuCheckSaveButton(diameter: 40) {
                     if viewModel.canSave {
@@ -165,6 +166,8 @@ struct NewIdealView: View {
                                     get: { HowOftenSlider.value(fromLabel: viewModel.targetCount) },
                                     set: { viewModel.targetCount = HowOftenSlider.label(for: $0) }
                                 ))
+                                // The slider card sits under the numbers too.
+                                .walkthroughSpot(.howOftenScale)
                             }
                             .padding(.top, 10)
                             .padding(.bottom, 8)
@@ -195,12 +198,20 @@ struct NewIdealView: View {
         // The tour's title step arrives with the cursor already in the field
         // and the keyboard up, so there is nothing to find before typing.
         .onAppear { focusTitleIfTourAsks() }
-        .onChange(of: walkthrough.run?.step?.id) { _, _ in focusTitleIfTourAsks() }
-        // The tour's title step ends as soon as there is a title to save.
-        .onChange(of: viewModel.title) { _, newValue in
-            if !newValue.trimmingCharacters(in: .whitespaces).isEmpty {
-                walkthrough.report(.enteredTitle)
+        .onChange(of: walkthrough.run?.step?.id) { oldStep, _ in
+            focusTitleIfTourAsks()
+            // Next on the title card: the title is done, so the keyboard goes
+            // and the category card has the screen to itself.
+            if oldStep == Self.tourTitleStepId,
+               walkthrough.run?.step?.focusesTitleField != true {
+                titleFocused = false
             }
+        }
+        // A title unlocks the title card's Next (and emptying it locks it
+        // again); the user still taps Next when they have finished typing.
+        .onChange(of: viewModel.title) { _, newValue in
+            let hasTitle = !newValue.trimmingCharacters(in: .whitespaces).isEmpty
+            walkthrough.report(hasTitle ? .enteredTitle : .clearedTitle)
         }
         // Closed without saving: the tour resumes on the list instead of
         // waiting for a save that is not coming.
@@ -213,6 +224,8 @@ struct NewIdealView: View {
             )
         }
     }
+
+    private static let tourTitleStepId = "ideal.title"
 
     private func focusTitleIfTourAsks() {
         guard walkthrough.run?.step?.focusesTitleField == true else { return }

@@ -97,8 +97,9 @@ struct HistoryProgressView: View {
                         // Overall Progress section
                         VStack(spacing: 13) {  // 50% of 26 (space between title and ring area)
                             // Filter out categories with no ideals and categories with 0 arcs, show rings or completion message
-                            // Order: fix (innermost/smallest) to fun (outermost/largest)
-                            let allCategories: [Category] = [.fix, .fitness, .feelings, .faculties, .family, .finance, .fun]
+                            // Order: Fix (innermost/smallest) to Finance (outermost/largest) —
+                            // the category order, read from the enum so it cannot drift.
+                            let allCategories = Category.allCases
                             let categoriesWithArcs = allCategories.filter { category in
                                 // Use current week ideals filtered by category
                                 let categoryIdeals = currentWeekIdeals.filter { 
@@ -522,15 +523,17 @@ struct HistoryProgressView: View {
 
     private func categoryRingColor(for category: Category) -> Color {
         // Palette-only ring colors (no green / orange / purple in this system).
-        // Cycled so adjacent rings never share a colour.
+        // Each category keeps its colour wherever it sits. With all seven
+        // showing (… Family, Fun, Finance) adjacent rings never share one;
+        // empty categories drop out, so two can meet when some are missing.
         switch category {
         case .fix:       return LCColor.pink
         case .fitness:   return LCColor.blue
         case .feelings:  return LCColor.yellow
         case .faculties: return LCColor.pink
         case .family:    return LCColor.blue
-        case .finance:   return LCColor.yellow
         case .fun:       return LCColor.pink
+        case .finance:   return LCColor.yellow
         }
     }
     

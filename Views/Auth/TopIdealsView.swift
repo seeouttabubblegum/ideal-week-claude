@@ -58,8 +58,8 @@ struct TopIdealsView: View {
         case feelings = "Feelings"
         case faculties = "Faculties"
         case family = "Family"
-        case finance = "Finance"
         case fun = "Fun"
+        case finance = "Finance"
     }
 
     // MARK: - Date helpers - Last 2 active weeks range

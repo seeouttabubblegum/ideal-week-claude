@@ -39,6 +39,9 @@ struct PlanningSheetView: View {
     let onReasonProvided: () -> Void
     /// Called when Save succeeds, before dismissing, so parent can throttle re-opening (e.g. after items update from Firestore).
     let onDismissedAfterSave: () -> Void
+    /// Weekly prompt only: says how many of last week's ideals are left off
+    /// the list because they are already in this week.
+    let carryOverNote: String?
     @State private var showNewWishlistItemSheet = false
     @State private var hasAppeared = false // Track if view has appeared to prevent reset
     @State private var showPlanningAlert = false
@@ -56,7 +59,7 @@ struct PlanningSheetView: View {
     /// Both Next? tours hand over here, and this screen has its own steps.
     @ObservedObject private var walkthrough = WalkthroughCoordinator.shared
 
-    init(viewModel: PlanningSheetViewModel, ideals: [Ideal], wishlistIdeals: [Ideal], existingTargetWeekIdeals: [Ideal] = [], accentColor: Color, weekStartDay: String, isPresented: Binding<Bool>, unlockedWithPin: Bool, isWeeklyPrompt: Bool = false, targetsCurrentWeek: Bool = false, weeklyPromptWithExistingPlan: Bool = false, showOnlyMissedAnythingStep: Bool = false, reasonAlreadyProvidedFromParent: Bool = false, onReasonProvided: @escaping () -> Void = {}, onDismissedAfterSave: @escaping () -> Void = {}) {
+    init(viewModel: PlanningSheetViewModel, ideals: [Ideal], wishlistIdeals: [Ideal], existingTargetWeekIdeals: [Ideal] = [], accentColor: Color, weekStartDay: String, isPresented: Binding<Bool>, unlockedWithPin: Bool, isWeeklyPrompt: Bool = false, targetsCurrentWeek: Bool = false, weeklyPromptWithExistingPlan: Bool = false, showOnlyMissedAnythingStep: Bool = false, reasonAlreadyProvidedFromParent: Bool = false, onReasonProvided: @escaping () -> Void = {}, onDismissedAfterSave: @escaping () -> Void = {}, carryOverNote: String? = nil) {
         self.viewModel = viewModel
         self.ideals = ideals
         self.wishlistIdeals = wishlistIdeals
@@ -72,6 +75,7 @@ struct PlanningSheetView: View {
         self.reasonAlreadyProvidedFromParent = reasonAlreadyProvidedFromParent
         self.onReasonProvided = onReasonProvided
         self.onDismissedAfterSave = onDismissedAfterSave
+        self.carryOverNote = carryOverNote
 
         // Don't set initial screen in init - let onAppear handle it
         // This prevents async init from overriding user navigation
@@ -141,12 +145,39 @@ struct PlanningSheetView: View {
         }
     }
 
+    /// The first Again? screen the user sees — where the carry-over note goes.
+    private var isFirstAgainScreen: Bool {
+        viewModel.currentScreen == .selectionSuccess
+            || (viewModel.currentScreen == .selection && successfulAgainIdeals.isEmpty)
+    }
+
+    @ViewBuilder
+    private var carryOverNoteView: some View {
+        if let carryOverNote {
+            Text(carryOverNote)
+                .font(.manrope(13, .medium))
+                .foregroundColor(LCColor.textSecondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 6)
+        }
+    }
+
     /// Route from selectionSuccess → selection (rest) if non-empty, else fall through to wishlist/createNew.
     private func continueFromSelectionSuccess() {
         if !restAgainIdeals.isEmpty {
             viewModel.currentScreen = .selection
         } else {
             routeFromSelectionToNextAvailableScreen()
+        }
+    }
+
+    /// Which of the planning tour's screens this step of the flow is.
+    static func tourScreen(for screen: PlanningSheetViewModel.PlanningScreen) -> WalkthroughScreen? {
+        switch screen {
+        case .selectionSuccess, .selection, .wishlist: return .planningPicks
+        case .createNewIdeals:                         return .planningAdd
+        case .reason:                                  return nil
         }
     }
 
@@ -269,8 +300,9 @@ struct PlanningSheetView: View {
     func getNextWeekDays(weekStartDay: String) -> [DayInfo] {
         let calendar = Calendar.current
         let nextWeekRange = WeekdayUtility.nextWeekRange(weekStartDay: weekStartDay)
-        let nextWeekStartDayStart = nextWeekRange.start
-        let nextWeekEndDayStart = nextWeekRange.end.startOfDay
+        // The week is counted in the pinned zone; the days shown are local days.
+        let nextWeekStartDayStart = WeekdayUtility.localDayStart(forWeekStart: nextWeekRange.start)
+        let nextWeekEndDayStart = calendar.date(byAdding: .day, value: 6, to: nextWeekStartDayStart) ?? nextWeekStartDayStart
         
         // Day abbreviations
         let dayAbbreviations = WeekdayUtility.dayAbbreviations
@@ -352,7 +384,9 @@ struct PlanningSheetView: View {
             // Neumorphic redesign: every screen draws its own HH Samuel header, so the system nav bar is hidden.
             .toolbar(.hidden, for: .navigationBar)
             .background(LCColor.surface.ignoresSafeArea())
-            .walkthroughHost(walkthrough, screen: .planningSheet)
+            // The tour is split by screen: picks cards on Priority / More /
+            // the wishlist, the rest on Missed Anything?, none on the reason.
+            .walkthroughHost(walkthrough, screen: Self.tourScreen(for: currentScreen))
             .onAppear {
                 // Closes whichever Next? tour brought the user here, then this
                 // screen's own steps begin.
@@ -366,6 +400,10 @@ struct PlanningSheetView: View {
                         walkthrough.report(.reachedPlanningAdd)
                     }
                 }
+            }
+            .onDisappear {
+                // Saved or cancelled: the planning tour ends with its screen.
+                walkthrough.report(.closedPlanning)
             }
         }
         .alert(planningAlertTitle, isPresented: $showPlanningAlert) {
@@ -492,6 +530,9 @@ struct PlanningSheetView: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 10)
                             .padding(.bottom, 4)
+                        if isFirstAgainScreen {
+                            carryOverNoteView
+                        }
                     } else {
                         Text("Pick ideals from this week to be carried over to the next week")
                             .font(.manrope(14, .medium))
@@ -668,6 +709,7 @@ struct PlanningSheetView: View {
                     Text("Continue")
                 }
                 .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink, font: .manrope(18, .heavy)))
+                .walkthroughSpot(.planContinue)
             }
             .padding()
         }
@@ -709,6 +751,11 @@ struct PlanningSheetView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 10)
                         .padding(.bottom, 4)
+                    // Everything from last week was already in the week, so
+                    // the Again? screens were skipped — say so here.
+                    if visibleAgainIdeals.isEmpty {
+                        carryOverNoteView
+                    }
 
                     if wishlistIdeals.isEmpty {
                         Text("No items in your wishlist")
@@ -761,6 +808,7 @@ struct PlanningSheetView: View {
                 Text("Continue")
             }
             .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink, font: .manrope(18, .heavy)))
+            .walkthroughSpot(.planContinue)
             .disabled(!viewModel.canContinueFromWishlist())
             .opacity(viewModel.canContinueFromWishlist() ? 1 : 0.5)
             .padding()
@@ -811,6 +859,14 @@ struct PlanningSheetView: View {
             ScrollViewReader { scroller in
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
+                    // Last week was all already in this week and there was no
+                    // wishlist step either: this is the first screen, so the
+                    // note goes here.
+                    if visibleAgainIdeals.isEmpty && wishlistIdeals.isEmpty {
+                        carryOverNoteView
+                            .padding(.top, 10)
+                    }
+
                     // ADDING TO THIS WEEK section with added ideals (all except last)
                     let completedDrafts = viewModel.newIdealsToCreate.count > 1 ? Array(viewModel.newIdealsToCreate.dropLast()) : []
                     if !completedDrafts.isEmpty {
@@ -882,6 +938,7 @@ struct PlanningSheetView: View {
                         }
                     }
                     .buttonStyle(NeumorphicButtonStyle(tint: LCColor.pink, fill: LCColor.yellow, font: .manrope(18, .heavy)))
+                    .walkthroughSpot(.planAddButton)
                     // Nothing to add until the form has a title.
                     .disabled(!MissedAnythingDrafts.canAddAnother(viewModel.newIdealsToCreate))
                     .opacity(MissedAnythingDrafts.canAddAnother(viewModel.newIdealsToCreate) ? 1 : 0.5)

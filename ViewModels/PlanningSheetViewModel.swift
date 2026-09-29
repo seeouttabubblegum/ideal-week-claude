@@ -459,6 +459,14 @@ class PlanningSheetViewModel: ObservableObject {
         return data
     }
     
+    /// An ideal already in next week that a new plan replaces.
+    struct ReplacedIdeal {
+        let id: String
+        let action: PlanRemoval.Action
+        let reminderIds: [String]
+        let legacyReminderId: String?
+    }
+
     func savePlanning(selectedIdeals: [Ideal], selectedWishlistIdeals: [Ideal], weekStartDay: String, requireReason: Bool = true, isWeeklyPrompt: Bool = false, completion: @escaping (SavePlanningResult) -> Void) {
         guard !isSaving else {
             completion(SavePlanningResult(success: false, skippedDuplicates: [], validationDuplicates: []))
@@ -490,7 +498,7 @@ class PlanningSheetViewModel: ObservableObject {
         let newIdealCreatedDate = forCurrentWeek ? Date().timeIntervalSince1970 : targetStart
         
         // Next? flow fully replaces existing plan records before writing the new plan set.
-        let flushAndSave: (Set<String>, [String], Set<String>) -> Void = { [weak self] existingTargetWeekKeys, existingPlannedRecordIds, existingTargetWeekPlannedIdealIds in
+        let flushAndSave: (Set<String>, [String], [ReplacedIdeal]) -> Void = { [weak self] existingTargetWeekKeys, existingPlannedRecordIds, replacedIdeals in
             guard let self = self else { return }
             let batch = db.batch()
             var newPlannedIds: Set<String> = []
@@ -668,9 +676,17 @@ class PlanningSheetViewModel: ObservableObject {
                     operationsCount += 1
                 }
 
-                // Also remove old target-week planned ideals referenced by previous plan records.
-                for idealId in existingTargetWeekPlannedIdealIds {
-                    batch.deleteDocument(idealsRef.document(idealId))
+                // Everything already in next week makes way for the new plan:
+                // copies are deleted, wishlist items the old plan moved in go
+                // back to the wishlist (deleting them lost the user's only
+                // copy), and leftovers without a plan record go too — they
+                // escaped the duplicate check and doubled up (PlanRemoval).
+                for old in replacedIdeals {
+                    let ref = idealsRef.document(old.id)
+                    switch old.action {
+                    case .deleteCopy: batch.deleteDocument(ref)
+                    case .returnToWishlist: batch.updateData(PlanRemoval.wishlistRestoreFields, forDocument: ref)
+                    }
                     operationsCount += 1
                 }
             }
@@ -722,6 +738,13 @@ class PlanningSheetViewModel: ObservableObject {
                         completion(SavePlanningResult(success: false, skippedDuplicates: [], validationDuplicates: []))
                     } else {
                         self.didSaveThisSession = true
+                        // Replaced ideals' EventKit reminders would keep firing.
+                        if !forCurrentWeek {
+                            for old in replacedIdeals {
+                                NotificationManager.removeRemindersForIdeal(reminderIds: old.reminderIds,
+                                                                            legacyReminderId: old.legacyReminderId)
+                            }
+                        }
                         var seen: Set<String> = []
                         let uniqueSkipped = skippedDuplicates.filter { seen.insert($0).inserted }
                         Self.deletePlanRecordsOutsideCurrentAndNextWeek(
@@ -802,7 +825,27 @@ class PlanningSheetViewModel: ObservableObject {
                         return IdealDuplicateGuard.duplicateKey(category: category, title: title)
                     })
 
-                    flushAndSave(existingPlanKeys, nextWeekPlanRecordIds, existingTargetWeekPlannedIdealIds)
+                    // Every non-wishlist ideal in next week is replaced — planned
+                    // ones and leftovers alike.
+                    let replaceIds = Set(PlanRemoval.idsReplacedByNewPlan(targetWeekDocs: targetWeekDocs.map { doc in
+                        PlanRemoval.TargetWeekDoc(id: doc.documentID,
+                                                  isWishlist: doc.data()["wishlistEnabled"] as? Bool ?? false)
+                    }))
+                    let replacedIdeals: [ReplacedIdeal] = targetWeekDocs.compactMap { doc in
+                        guard replaceIds.contains(doc.documentID) else { return nil }
+                        let data = doc.data()
+                        return ReplacedIdeal(
+                            id: doc.documentID,
+                            action: PlanRemoval.action(
+                                plannedFromWishlistAt: data["plannedFromWishlistAt"] as? TimeInterval ?? 0,
+                                sourceIdealId: data["sourceIdealId"] as? String,
+                                createdDate: data["createdDate"] as? TimeInterval ?? 0,
+                                targetWeekStart: targetStart),
+                            reminderIds: data["reminderIds"] as? [String] ?? [],
+                            legacyReminderId: data["reminderId"] as? String)
+                    }
+
+                    flushAndSave(existingPlanKeys, nextWeekPlanRecordIds, replacedIdeals)
                 }
             }
         }

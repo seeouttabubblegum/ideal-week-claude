@@ -66,6 +66,11 @@ struct IdealListView: View {
     @State var isWeeklyPromptPlanningFlow = false // When true, planning sheet shows create-new-ideals screen and no create wishlist option
     /// When true (weekly prompt + plan already created from Next?): sheet shows only unselected Again? list if any, then Missed Anything? (skip wishlist).
     @State var weeklyPromptWithExistingPlan = false
+    /// Weekly prompt "a plan exists" gate: the week whose plan records were
+    /// read from the server (not inferred from the listener), and what it found.
+    @State var weeklyPlanConfirmedWeekKey: String? = nil
+    @State var weeklyPlanConfirmedRecordIds: Set<String> = []
+    @State var isConfirmingWeeklyPlan = false
     /// When true, planning sheet opens on Missed Anything? only (no Again?, no Wishlist); used when plan exists and not in planning window.
     @State var showOnlyMissedAnythingStep = false
     /// When true, Next? tab opened sheet to add more to existing next-week plan; do not run plan-table cleanup on save.
@@ -260,7 +265,8 @@ struct IdealListView: View {
     private var currentWeekBoundaries: (start: TimeInterval, nextStart: TimeInterval)? {
         guard let firstSettings = storedTempSettings.first else { return nil }
         let weekStartDay = firstSettings.week_start_day
-        let customCalendar = WeekdayUtility.calendar(firstWeekday: weekStartDay)
+        // Weeks are counted in the pinned zone (WeekTimeZone), like every stored startDate.
+        let customCalendar = WeekdayUtility.weekCalendar(firstWeekday: weekStartDay)
         let now = dateProvider.now()
         guard let currentWeekStart = customCalendar.date(from: customCalendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: now)),
               let nextWeekStart = customCalendar.date(byAdding: .day, value: 7, to: currentWeekStart) else { return nil }
@@ -521,18 +527,13 @@ struct IdealListView: View {
 
     /// Aggregate completion (0…1) for the header progress-rings icon, grouped by
     /// the book's official "3 Fs" structure (order matters, outer → inner):
-    ///   F THIS = Fix · F ME = Fitness, Feelings, Faculties · F EVERYTHING ELSE = Family, Finance, Fun
+    ///   F THIS = Fix · F ME = Fitness, Feelings, Faculties · F EVERYTHING ELSE = Family, Fun, Finance
     private var groupProgressRings: [Double] {
-        // Outer → center. Client decision 2026-07-15: F THIS (Fix) sits at the
-        // CENTER pie, F EVERYTHING ELSE on the outer ring.
-        let groups: [[Category]] = [
-            [.family, .finance, .fun],           // F EVERYTHING ELSE (outer ring)
-            [.fitness, .feelings, .faculties],   // F ME (inner ring)
-            [.fix]                               // F THIS (center pie)
-        ]
-        return groups.map { group in
+        // Outer → center (`CategoryGroup.ringOrder`): F EVERYTHING ELSE on the
+        // outer ring, F ME inside it, F THIS (Fix) as the centre pie.
+        return CategoryGroup.ringOrder.map { group in
             var done = 0, total = 0
-            for cat in group {
+            for cat in group.categories {
                 for ideal in catItems(cat) {
                     let target = ideal.targetCount == "6+" ? 6 : (Int(ideal.targetCount) ?? 0)
                     guard target > 0 else { continue }
@@ -631,6 +632,14 @@ struct IdealListView: View {
 
     /// Ideals offered on the Next? screen's Again? step — this week's, or the
     /// last active week's when this week is empty.
+    /// "27 of last week's 29 ideals are already in this week…" — nil when the
+    /// weekly prompt's list left nothing out.
+    private var weeklyPromptCarryOverNote: String? {
+        let lastWeek = getPreviousWeekItems().count
+        let listed = previousWeekIdealsForWeeklyPrompt.count
+        return PlanningCarryOverNote.text(alreadyInWeek: lastWeek - listed, lastWeekTotal: lastWeek)
+    }
+
     private var againSourceIdeals: [Ideal] {
         NextPlanningDecision.againSourceIdeals(currentWeek: currentWeekIdeals,
                                                lastActiveWeek: previousWeekIdealsForWeeklyPrompt)
@@ -1465,6 +1474,37 @@ struct IdealListView: View {
         idealRepository.deletePlannedRecord(userId: userId, idealId: idealId)
     }
 
+    /// Reads this week's plan records from the server once, then re-runs the
+    /// weekly flow. The listener is only inferred to have loaded, so without
+    /// this a slow planned-records snapshot let the prompt offer planning over
+    /// an existing plan. On failure nothing is shown; the next sync retries.
+    func confirmWeeklyPlanThenResync(weekKey: String) {
+        guard !isConfirmingWeeklyPlan, let bounds = currentWeekBoundaries else { return }
+        isConfirmingWeeklyPlan = true
+        idealRepository.fetchPlanRecordIds(userId: userId, start: bounds.start,
+                                           endExclusive: bounds.nextStart) { result in
+            isConfirmingWeeklyPlan = false
+            guard case .success(let ids) = result else { return }
+            weeklyPlanConfirmedWeekKey = weekKey
+            weeklyPlanConfirmedRecordIds = ids
+            continueSyncAfterPlanningStateCheck()
+        }
+    }
+
+    /// "Remove from plan?": the ideal leaves next week too (see PlanRemoval) —
+    /// deleting only the record let it reappear when the week began.
+    private func removeFromNextWeekPlan(_ ideal: Ideal) {
+        guard !ideal.id.isEmpty, let bounds = nextWeekBoundaries else { return }
+        // Its EventKit reminders would otherwise keep firing for next week.
+        NotificationManager.removeRemindersForIdeal(reminderIds: ideal.reminderIds,
+                                                    legacyReminderId: ideal.reminderId)
+        idealRepository.removeFromNextWeekPlan(userId: userId, ideal: ideal, targetWeekStart: bounds.start) { error in
+            if let error = error {
+                AppLogger.error(AppLogger.firestore, "[IdealListView] Failed to remove from plan: \(error.localizedDescription)")
+            }
+        }
+    }
+
     /// Batch-delete all next-week planned records and their corresponding next-week ideals from Firestore.
     /// Calls completion on the main queue when done (or on error).
     /// Add a wishlist ideal to next week's plan (in-place update + planned record).
@@ -1825,6 +1865,8 @@ struct IdealListView: View {
                         // They used to be #if DEBUG, which kept them out of
                         // TestFlight builds; they are deliberately in every build
                         // now and must come out before a public release.
+                        // Not on Jay's account (see `TestLinks`).
+                        if TestLinks.showsWeeklyPromptLink(email: Auth.auth().currentUser?.email) {
                         Button {
                             HapticFeedback.impact()
                             triggerWeeklyPromptForTesting()
@@ -1840,6 +1882,7 @@ struct IdealListView: View {
                         .listRowInsets(EdgeInsets())
                         .listRowSeparator(.hidden)
                         .listRowBackground(LCColor.surface)
+                        }
 
                         // Same idea for the first-run tour: a user who is long
                         // past onboarding can still see it. (Help's "Show tips
@@ -1912,6 +1955,8 @@ struct IdealListView: View {
             .onChange(of: walkthrough.request) { _, request in
                 guard request == .openNewIdeal else { return }
                 walkthrough.clearRequest()
+                // Never a second form over one that is already open.
+                guard !viewModel.showingNewItemView else { return }
                 categoryForNewIdeal = Category.allCases.first
                 wishlistCreation = false
                 viewModel.showingNewItemView = true
@@ -2115,7 +2160,14 @@ struct IdealListView: View {
                                     .accessibilityAddTraits(.isHeader)
                             }
                             HStack {
-                                NeuCloseButton(action: { showNextPage = false }, diameter: 36)
+                                NeuCloseButton(action: {
+                                    // Only the user's own close ends the page's
+                                    // tour: the page also goes away when the PIN
+                                    // screen opens, and that is the tour going on.
+                                    walkthrough.report(.closedNextPage)
+                                    showNextPage = false
+                                }, diameter: 36)
+                                    .walkthroughSpot(.screenClose)
                                 Spacer()
                             }
                         }
@@ -2234,7 +2286,11 @@ struct IdealListView: View {
                     showOnlyMissedAnythingStep: showOnlyMissedAnythingStep,
                     reasonAlreadyProvidedFromParent: userHasProvidedPlanningReasonThisSession,
                     onReasonProvided: { userHasProvidedPlanningReasonThisSession = true },
-                    onDismissedAfterSave: { planningSheetDismissedAt = Date() }
+                    onDismissedAfterSave: { planningSheetDismissedAt = Date() },
+                    // Only the weekly prompt's list leaves ideals out (those
+                    // already in this week), so only it explains the gap.
+                    carryOverNote: (isWeeklyPromptPlanningFlow || isTestWeeklyPromptMode)
+                        ? weeklyPromptCarryOverNote : nil
                 )
             }
             // 7n Weekly Choice is now a styled neumorphic modal over the dimmed
@@ -2259,7 +2315,7 @@ struct IdealListView: View {
                         title: Text("Remove from plan?"),
                         message: Text("Remove \"\(ideal.title)\" from next week's plan? You can add it again later."),
                         primaryButton: .destructive(Text("Remove")) {
-                            deletePlannedRecord(for: ideal.id)
+                            removeFromNextWeekPlan(ideal)
                             nextTabSwipeAlert = nil
                         },
                         secondaryButton: .cancel {

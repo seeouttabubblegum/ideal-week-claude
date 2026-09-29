@@ -166,7 +166,15 @@ extension IdealListView {
         let openCount = currentWeekWeeklyPromptOpenCount
         let alreadyShownLastWeekReview = UserDefaults.standard.bool(forKey: lastWeekPromptKey)
         let isTestMode = firstSettings.testModeEnabled && dateProvider.isVirtualDateOverrideEnabled
-        let planExists = hasPlanRecordForCurrentWeek
+        let weekKey = Self.weeklyKeySuffix(for: now, weekStartDay: weekStartDay)
+        // Records the server check found, if they still point at this week's ideals.
+        let confirmedValidIds = weeklyPlanConfirmedRecordIds.filter { id in
+            items.contains { $0.id == id && !$0.wishlistEnabled && isInCurrentWeek($0) }
+        }
+        let planExists = WeeklyPlanConfirmation.planExists(fromListener: hasPlanRecordForCurrentWeek,
+                                                           confirmedIds: confirmedValidIds,
+                                                           confirmedWeekKey: weeklyPlanConfirmedWeekKey,
+                                                           currentWeekKey: weekKey)
         let plannedRecordCount = plannedItemRecords.count
         // First-active-week detection: lastActiveWeekRange only looks strictly
         // BEFORE the current week, so a brand-new account (first ideal created
@@ -205,6 +213,15 @@ extension IdealListView {
         let decision = WeeklyFlowDecisionEngine.decide(input)
 
         AppLogger.debug(AppLogger.ui, "[WeeklyPrompt] Decision: \(decision)")
+
+        // About to offer planning: make sure there really is no plan first.
+        if WeeklyPlanConfirmation.mustConfirm(decision: decision, forceShow: forceShow,
+                                              confirmedWeekKey: weeklyPlanConfirmedWeekKey,
+                                              currentWeekKey: weekKey) {
+            AppLogger.debug(AppLogger.ui, "[WeeklyPrompt] confirming this week's plan with the server first")
+            confirmWeeklyPlanThenResync(weekKey: weekKey)
+            return
+        }
 
         switch decision {
         case .blocked(let reason):

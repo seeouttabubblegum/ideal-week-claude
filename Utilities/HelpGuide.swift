@@ -42,7 +42,7 @@ enum HelpGuide {
                 Page(id: "week.list",
                      imageName: "tour_list",
                      title: "Seven parts of a week",
-                     caption: "Fix, Fitness, Feelings, Faculties, Family, Finance, Fun. Every ideal belongs to one of them, and the page is one band per part. The plus on a band adds to that part; NEXT plans the week ahead; the button top-right opens everything else."),
+                     caption: "Fix, Fitness, Feelings, Faculties, Family, Fun, Finance. Every ideal belongs to one of them, and the page is one band per part. The plus on a band adds to that part; NEXT plans the week ahead; the button top-right opens everything else."),
                 Page(id: "week.ideals",
                      imageName: "tour_list_rows",
                      title: "Your ideals, and their dots",

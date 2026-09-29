@@ -37,6 +37,9 @@ enum WalkthroughSpot: String {
     case titleField
     /// The slider's drag knob, not the whole row — the step asks for a drag.
     case howOftenKnob
+    /// The whole slider with its 1–6+ numbers — where the slider card sits
+    /// under, so it never covers them.
+    case howOftenScale
     case saveButton
     // Next? page
     case addToNextList
@@ -52,7 +55,15 @@ enum WalkthroughSpot: String {
     case starterIdeal
     /// The form the "Missed Anything?" step adds ideals through.
     case planAddForm
+    /// "Add To My Next Week" under that form — the add card sits below it.
+    case planAddButton
+    /// Continue at the foot of the picking screens — the picks card sits
+    /// above it, clear of the hearts.
+    case planContinue
     case savePlanButton
+    /// A screen's close button. Stays usable while a step waits, so the user
+    /// is never left with Skip as the only way out.
+    case screenClose
 }
 
 /// Which screen a step belongs to. Each screen hosts the tour itself — an
@@ -67,12 +78,18 @@ enum WalkthroughScreen {
     /// The secret-PIN screen that guards planning early.
     case pinScreen
     case nextPage
-    case planningSheet
+    /// The planning flow's picking screens — Priority / More / the wishlist.
+    case planningPicks
+    /// The planning flow's "Missed Anything?" step, where ideals are added and
+    /// the plan is saved.
+    case planningAdd
 }
 
 /// Something the user did that a step can be waiting for.
 enum WalkthroughEvent: Equatable {
     case enteredTitle
+    /// The title field was emptied again.
+    case clearedTitle
     case pickedCategory
     case changedHowOften
     case savedIdeal
@@ -98,10 +115,13 @@ enum WalkthroughEvent: Equatable {
     case closedPinScreen
     /// The planning flow opened — where both Next? tours hand over.
     case openedPlanning
-    /// The planning flow reached its "Missed Anything?" step, where ideals are
-    /// added. The picks step waits for this rather than for a Next tap, so its
-    /// card is never talking about a screen the user has not reached.
+    /// The planning flow reached its "Missed Anything?" step. A picks card the
+    /// user never tapped past is dropped, so the tour carries on here.
     case reachedPlanningAdd
+    /// The planning flow closed, saved or cancelled.
+    case closedPlanning
+    /// The Next? page was closed.
+    case closedNextPage
     /// The New Ideal screen closed without a save — the tour must not sit
     /// waiting for an event that can no longer arrive.
     case closedNewIdeal
@@ -126,6 +146,28 @@ enum WalkthroughPlacement {
     /// Forced above — the step opens the keyboard, which would bury a card
     /// placed underneath.
     case above
+    /// Forced below — the card must not cover what sits under the control.
+    case below
+}
+
+/// Where a card goes. Pure so the rule can be tested.
+enum WalkthroughCardPlacement {
+    /// Just under the control — or, when the screen runs out, as low as the
+    /// card can sit while staying fully on screen (it may then overlap the
+    /// control's lower edge; a card off the bottom edge is worse).
+    static func belowY(targetMaxY: CGFloat, cardHeight: CGFloat, screenHeight: CGFloat,
+                       halo: CGFloat, gap: CGFloat, margin: CGFloat) -> CGFloat {
+        let below = targetMaxY + halo + gap
+        return min(below, screenHeight - margin - cardHeight)
+    }
+}
+
+/// Where touches still get through while a step keeps its control live. Pure
+/// so it can be tested; the overlay blocks everything else.
+enum WalkthroughHitArea {
+    static func liveRects(target: CGRect?, escape: CGRect?, halo: CGFloat) -> [CGRect] {
+        [target?.insetBy(dx: -halo, dy: -halo), escape].compactMap { $0 }
+    }
 }
 
 /// What the step's card shows. Pure so the rule can be tested; the overlay
@@ -156,10 +198,16 @@ struct WalkthroughStep: Identifiable, Equatable {
     let focusesTitleField: Bool
     /// Drawn inside the card, under the message.
     let illustration: WalkthroughIllustration?
-    /// Whether a WAITING step seals the rest of the screen off. True for the
-    /// steps that ask for one tap on one control; false where the user has to
-    /// work across a whole screen before the step's event can arrive.
-    let blocksScreen: Bool
+    /// The step has a Next button, but it stays disabled until this happens —
+    /// and while it waits, the highlighted control stays usable. The title
+    /// step: type a title, then Next.
+    let nextUnlockedBy: WalkthroughEvent?
+    /// Place the card against this spot instead of the highlighted one — the
+    /// slider card sits under the numbers, not just under the knob it lights.
+    let cardAnchor: WalkthroughSpot?
+    /// The whole screen stays usable under the card — the review sheet, where
+    /// the card says "drag the slider" and "SKIP leaves it out".
+    let leavesScreenLive: Bool
 
     init(_ id: String,
          screen: WalkthroughScreen = .idealsList,
@@ -171,7 +219,9 @@ struct WalkthroughStep: Identifiable, Equatable {
          placement: WalkthroughPlacement = .auto,
          focusesTitleField: Bool = false,
          illustration: WalkthroughIllustration? = nil,
-         blocksScreen: Bool = true) {
+         nextUnlockedBy: WalkthroughEvent? = nil,
+         cardAnchor: WalkthroughSpot? = nil,
+         leavesScreenLive: Bool = false) {
         self.id = id
         self.screen = screen
         self.spot = spot
@@ -182,7 +232,9 @@ struct WalkthroughStep: Identifiable, Equatable {
         self.placement = placement
         self.focusesTitleField = focusesTitleField
         self.illustration = illustration
-        self.blocksScreen = blocksScreen
+        self.nextUnlockedBy = nextUnlockedBy
+        self.cardAnchor = cardAnchor
+        self.leavesScreenLive = leavesScreenLive
     }
 
     static func == (lhs: WalkthroughStep, rhs: WalkthroughStep) -> Bool { lhs.id == rhs.id }
@@ -195,7 +247,7 @@ extension Walkthrough {
             return [
                 WalkthroughStep("tour.categories", spot: .categoryBand,
                                 title: "Seven parts of a week",
-                                message: "Fix, Fitness, Feelings, Faculties, Family, Finance, Fun. Your week is built from all seven, not just the loudest one."),
+                                message: "Fix, Fitness, Feelings, Faculties, Family, Fun, Finance. Your week is built from all seven, not just the loudest one."),
                 WalkthroughStep("tour.add", spot: .addIdealButton,
                                 title: "Add your first ideal",
                                 message: "The plus on a band adds something to that part of your week. Tap Next and we will open it for you."),
@@ -203,13 +255,15 @@ extension Walkthrough {
                 // The form. These steps wait for the real thing to happen.
                 // No heading: the card sits above the title field with the
                 // keyboard up, and a heading pushed it down over the field.
+                // Next, not the first letter typed, moves this one on: the
+                // category card used to jump in mid-word with the keyboard up.
                 WalkthroughStep("ideal.title", screen: .newIdeal, spot: .titleField,
                                 title: "",
-                                message: "Type a short title — something you could actually do this week. \u{201C}Walk 20 minutes\u{201D} beats \u{201C}Get fit\u{201D}.",
-                                waitsFor: .enteredTitle,
+                                message: "Type a short title — something you could actually do this week. \u{201C}Walk 20 minutes\u{201D} beats \u{201C}Get fit\u{201D}. Tap Next when it reads right.",
                                 request: .openNewIdeal,
                                 placement: .above,
-                                focusesTitleField: true),
+                                focusesTitleField: true,
+                                nextUnlockedBy: .enteredTitle),
                 WalkthroughStep("ideal.category", screen: .newIdeal, spot: .categoryPicker,
                                 title: "Which part of the week?",
                                 message: "Tap the icon for the part of your week this belongs to. Fix is fine if you are not sure.",
@@ -217,7 +271,9 @@ extension Walkthrough {
                 WalkthroughStep("ideal.howOften", screen: .newIdeal, spot: .howOftenKnob,
                                 title: "How often this week?",
                                 message: "Drag the knob. This is the target your tracking dots fill up — start low, you can always do more.",
-                                waitsFor: .changedHowOften),
+                                waitsFor: .changedHowOften,
+                                placement: .below,
+                                cardAnchor: .howOftenScale),
                 WalkthroughStep("ideal.save", screen: .newIdeal, spot: .saveButton,
                                 title: "Save it",
                                 message: "Tap the check and it joins your week.",
@@ -233,11 +289,15 @@ extension Walkthrough {
                 // The review sheet the swipe opens.
                 WalkthroughStep("review.slider", screen: .reviewSheet, spot: .moodSlider,
                                 title: "How did that feel?",
-                                message: "Every time you mark something done the app asks this. Drag the slider — yellow is a good one, blue is a hard one."),
+                                message: "Every time you mark something done the app asks this. Drag the slider — yellow is a good one, blue is a hard one.",
+                                leavesScreenLive: true),
                 WalkthroughStep("review.submit", screen: .reviewSheet, spot: .reviewSubmit,
                                 title: "Keep it",
                                 message: "The arrow saves your score and closes this. SKIP leaves it out — your dot is filled either way.",
-                                waitsFor: .finishedReview),
+                                waitsFor: .finishedReview,
+                                placement: .above,
+                                cardAnchor: .moodSlider,
+                                leavesScreenLive: true),
                 // Setting a reminder, on the ideal they just made.
                 WalkthroughStep("schedule.bell", spot: .scheduleBell,
                                 title: "Want a nudge?",
@@ -302,10 +362,13 @@ extension Walkthrough {
                                 title: "Why it is locked",
                                 message: "Planning works best near the end of a week, when you know how this one went. Earlier than that the app asks for a PIN, so planning early is a choice you make on purpose. Tap to open it.",
                                 waitsFor: .openedPinScreen),
+                // Above the boxes: the confirm row sits right under them, and
+                // the keyboard comes up from below.
                 WalkthroughStep("locked.pin", screen: .pinScreen, spot: .pinEntry,
                                 title: "Set your PIN",
                                 message: "Pick four digits you will remember and type them in, then type them again to confirm. It is yours — the app never fills it in for you. Next time, this screen just asks for it.",
-                                waitsFor: .pinAccepted),
+                                waitsFor: .pinAccepted,
+                                placement: .above),
                 WalkthroughStep("locked.reason", screen: .pinScreen, spot: .pinReason,
                                 title: "Why plan early?",
                                 message: "One line for yourself about why next week cannot wait. Then Confirm, and planning opens.",
@@ -313,30 +376,36 @@ extension Walkthrough {
             ]
         case .firstPlan:
             return [
-                // Waits for the flow itself, not for a Next tap: the steps
-                // after this one are about the last screen of planning, and
-                // the user is still on the first.
-                WalkthroughStep("plan.pick", screen: .planningSheet, spot: .planPickHeart,
+                // Each card belongs to the screen it talks about: after Next
+                // here, the next card waits for "Missed Anything?".
+                WalkthroughStep("plan.pick", screen: .planningPicks, spot: .planPickHeart,
                                 title: "Picked, or waiting",
-                                message: "Tap the heart on anything you want in next week — filled means it comes with you, empty means it waits. Continue when you have been through them.",
-                                waitsFor: .reachedPlanningAdd,
-                                blocksScreen: false),
-                WalkthroughStep("plan.add", screen: .planningSheet, spot: .planAddForm,
+                                message: "Tap the heart on anything you want in the week you are planning — filled means it comes with you, empty means it waits. Then Continue at the bottom; the last step has two more tips.",
+                                placement: .above,
+                                cardAnchor: .planContinue,
+                                leavesScreenLive: true),
+                WalkthroughStep("plan.add", screen: .planningAdd, spot: .planAddForm,
                                 title: "Add as many as you like",
-                                message: "Fill in the form and tap Add for each one. The note above it names the parts of the week still empty, and goes once they all have something."),
-                WalkthroughStep("plan.save", screen: .planningSheet, spot: .savePlanButton,
+                                message: "Fill in the form, then tap Add. The note above lists what is still empty.",
+                                placement: .below,
+                                cardAnchor: .planAddButton,
+                                leavesScreenLive: true),
+                WalkthroughStep("plan.save", screen: .planningAdd, spot: .savePlanButton,
                                 title: "Save when you are done",
                                 message: "The number on the check is how many ideals you are about to save."),
             ]
         case .firstPlanStarter:
             return [
-                WalkthroughStep("starter.one", screen: .planningSheet, spot: .starterIdeal,
+                WalkthroughStep("starter.one", screen: .planningAdd, spot: .starterIdeal,
                                 title: "One to start you off",
                                 message: "We put one ideal in for you, so your first plan does not start on a blank page. Change the words, change how often, or remove it with the cross — it is yours."),
-                WalkthroughStep("starter.add", screen: .planningSheet, spot: .planAddForm,
+                WalkthroughStep("starter.add", screen: .planningAdd, spot: .planAddForm,
                                 title: "Add as many as you like",
-                                message: "Fill in the form and tap Add for each one. The note above it names the parts of the week still empty, and goes once they all have something."),
-                WalkthroughStep("starter.save", screen: .planningSheet, spot: .savePlanButton,
+                                message: "Fill in the form, then tap Add. The note above lists what is still empty.",
+                                placement: .below,
+                                cardAnchor: .planAddButton,
+                                leavesScreenLive: true),
+                WalkthroughStep("starter.save", screen: .planningAdd, spot: .savePlanButton,
                                 title: "Save when you are done",
                                 message: "The number on the check is how many ideals you are about to save."),
             ]
@@ -366,10 +435,22 @@ struct WalkthroughRun: Equatable {
     /// button and the highlighted control stays usable.
     var isWaiting: Bool { step?.waitsFor != nil }
 
-    /// Next. Ignored while a step is waiting for the user — the tour cannot
-    /// skip past "type a title" on a button press.
+    /// Whether this step's Next has been unlocked (`nextUnlockedBy`).
+    private(set) var nextUnlocked = false
+
+    /// The step shows a Next button that cannot be pressed yet.
+    var nextIsLocked: Bool { step?.nextUnlockedBy != nil && !nextUnlocked }
+
+    /// The highlighted control stays usable under the card — a waiting step,
+    /// or one whose Next unlocks on something done in that control.
+    var keepsControlLive: Bool {
+        isWaiting || step?.nextUnlockedBy != nil || step?.leavesScreenLive == true
+    }
+
+    /// Next. Ignored while a step is waiting for the user, or its Next is not
+    /// unlocked yet — the tour cannot skip past "type a title" on a press.
     mutating func advance() {
-        guard !isFinished, !isWaiting else { return }
+        guard !isFinished, !isWaiting, !nextIsLocked else { return }
         moveOn()
     }
 
@@ -378,6 +459,15 @@ struct WalkthroughRun: Equatable {
         guard !isFinished, let step else { return }
         if step.waitsFor == event {
             moveOn()
+            return
+        }
+        // Unlocks Next; the user still taps it.
+        if step.nextUnlockedBy == event {
+            nextUnlocked = true
+            return
+        }
+        if event == .clearedTitle, step.nextUnlockedBy == .enteredTitle {
+            nextUnlocked = false
             return
         }
         // Leaving the New Ideal screen without saving: resume on the list
@@ -408,11 +498,37 @@ struct WalkthroughRun: Equatable {
                 moveOn()
             }
         }
+        // Continued past the picks without tapping Next: the picks card is
+        // about a screen the user has left.
+        if event == .reachedPlanningAdd, step.screen == .planningPicks {
+            while let current = self.step, current.screen == .planningPicks {
+                moveOn()
+            }
+        }
+        // The Next? page closed while its own steps were showing: the tour
+        // (and the PIN steps it would lead to) is over. Not once the PIN
+        // screen is up — that opens OVER the page, which reports the page as
+        // gone; the PIN screen's own close handles leaving it.
+        if event == .closedNextPage, step.screen == .nextPage {
+            while let current = self.step,
+                  current.screen == .nextPage || current.screen == .pinScreen {
+                moveOn()
+            }
+        }
+        // Planning closed: nothing of its tour is left to show.
+        if event == .closedPlanning,
+           step.screen == .planningPicks || step.screen == .planningAdd {
+            while let current = self.step,
+                  current.screen == .planningPicks || current.screen == .planningAdd {
+                moveOn()
+            }
+        }
     }
 
     mutating func skip() { isFinished = true }
 
     private mutating func moveOn() {
+        nextUnlocked = false
         if isOnLastStep { isFinished = true } else { index += 1 }
     }
 }

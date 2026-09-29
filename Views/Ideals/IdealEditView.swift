@@ -200,7 +200,13 @@ struct IdealEditView: View {
         }
     }
 
+    /// Scroll target for the tour: the reminder section, so the toggle, the
+    /// days and the time are on screen together (on a 17 Pro the time sat
+    /// below the fold).
+    private static let reminderSectionId = "tourReminderSection"
+
     private var fullEditForm: some View {
+        ScrollViewReader { scroller in
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 sectionHeader("Ideal Information")
@@ -257,6 +263,7 @@ struct IdealEditView: View {
                 .padding(.horizontal, LCMetrics.screenMargin)
 
                 sectionHeader("Ideal Reminder")
+                    .id(Self.reminderSectionId)
                 VStack(alignment: .leading, spacing: 0) {
                     Toggle(isOn: $viewModel.setReminder) {
                         Text("Schedule a Reminder?")
@@ -301,6 +308,19 @@ struct IdealEditView: View {
                 .padding(.horizontal, LCMetrics.screenMargin)
             }
             .padding(.bottom, 30)
+        }
+        .onAppear { scrollToReminderIfTourAsks(scroller) }
+        .onChange(of: walkthrough.run?.step?.id) { _, _ in scrollToReminderIfTourAsks(scroller) }
+        }
+    }
+
+    private func scrollToReminderIfTourAsks(_ scroller: ScrollViewProxy) {
+        guard walkthrough.run?.step?.screen == .editIdeal else { return }
+        // After the sheet has settled, or the scroll is lost to its animation.
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+            withAnimation(.easeInOut(duration: 0.3)) {
+                scroller.scrollTo(Self.reminderSectionId, anchor: .top)
+            }
         }
     }
 
@@ -359,6 +379,7 @@ struct IdealEditView: View {
                 NeuCloseButton {
                     editItemPresented = false
                 }
+                .walkthroughSpot(.screenClose)
                 Spacer()
                 NeuCheckSaveButton(diameter: 40) {
                     let trimmedTitle = viewModel.title.trimmingCharacters(in: .whitespaces)

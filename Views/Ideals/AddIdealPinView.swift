@@ -106,6 +106,7 @@ struct AddIdealPinView: View {
             // Header — pinned above the scroll so the close button is always reachable.
             HStack {
                 NeuCloseButton(action: { isPresented = false }, diameter: 36)
+                    .walkthroughSpot(.screenClose)
                 Spacer()
             }
             .padding(.horizontal, LCMetrics.screenMargin)
@@ -178,7 +179,6 @@ struct AddIdealPinView: View {
                     }
                 }
                 .padding(.horizontal)
-                .walkthroughSpot(.pinEntry)
                 .overlay(
                     TextField("", text: Binding(
                         get: { viewModel.enteredPinFromDigits },
@@ -304,6 +304,9 @@ struct AddIdealPinView: View {
                 }
             }
             .padding(.horizontal)
+            // The tour lights both rows — the first time, the confirm row sits
+            // right under the PIN, and a card placed below covered it.
+            .walkthroughSpot(.pinEntry)
 
             // Planning flow: "Why plan early?" on same screen so it's one combined PIN + reason step
             if isForPlanning && showPlanningReasonOnPinScreen {

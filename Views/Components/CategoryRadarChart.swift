@@ -38,7 +38,7 @@ struct CategoryRadarChart: View {
 
     /// How far in from the view's edge the chart's rim has to sit.
     ///
-    /// The two near-horizontal axes — Feelings on the right, Finance on the left,
+    /// The two near-horizontal axes — Feelings on the right, Fun on the left,
     /// both at cos ≈ ±0.975 — anchor their label OUTWARD from the rim, so the
     /// whole word sits beyond the radius. At the old inset of 38 those two ran
     /// past the edge of the Canvas and were clipped away entirely. The widest

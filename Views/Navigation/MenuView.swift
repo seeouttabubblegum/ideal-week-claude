@@ -80,11 +80,14 @@ struct MenuView: View {
         let d = UserDefaults.standard
         AppLogger.debug(AppLogger.ui, "[Onboarding] check uid=\(uid) creation=\(String(describing: Auth.auth().currentUser?.metadata.creationDate)) userSeen=\(d.bool(forKey: OnboardingGate.seenHelpKey(uid: uid))) legacySeen=\(d.bool(forKey: OnboardingGate.legacySeenHelpKey))")
 
-        // Account age decides whether the guided tours run on their own: a
-        // returning user reinstalling the app knows it already.
-        let isNewAccount = OnboardingGate.isNewAccount(
-            creationDate: Auth.auth().currentUser?.metadata.creationDate)
-        WalkthroughCoordinator.shared.setAccountAge(isNewAccount: isNewAccount)
+        let creationDate = Auth.auth().currentUser?.metadata.creationDate
+        let isNewAccount = OnboardingGate.isNewAccount(creationDate: creationDate)
+        // The guided tours run on their own only for a new user, within two
+        // weeks of installing (client, 2026-09-29). Existing users — including
+        // one reinstalling — never get them unless they ask from Help.
+        WalkthroughCoordinator.shared.setAutomaticTours(allowed: WalkthroughGate.allowsAutomaticTours(
+            accountCreated: creationDate,
+            installedAt: AppInstallDate.recordIfNeeded()))
 
         let outcome = OnboardingGate.decide(.init(
             isNewAccount: isNewAccount,
