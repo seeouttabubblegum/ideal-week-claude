@@ -93,4 +93,23 @@ enum WeeklyPlanConfirmation {
                            currentWeekKey: String) -> Bool {
         fromListener || (confirmedWeekKey == currentWeekKey && !confirmedIds.isEmpty)
     }
+
+    /// The plan the server really holds for a week: its records, less any
+    /// whose ideal is gone (a stale record must not hold the flow up forever).
+    static func confirmedPlanIds(recordIds: Set<String>, idealIds: Set<String>) -> Set<String> {
+        recordIds.intersection(idealIds)
+    }
+
+    /// Whether the weekly flow must hold: the server confirmed a plan for this
+    /// week, and the list has not yet shown every one of its ideals. Deciding
+    /// before that let the choice prompt open over a week that was already
+    /// planned (client, 2026-10-02). `loadedIds` is every current-week ideal
+    /// the list has shown so far, so an ideal removed later cannot block it.
+    static func waitsForPlanIdeals(confirmedIds: Set<String>,
+                                   confirmedWeekKey: String?,
+                                   currentWeekKey: String,
+                                   loadedIds: Set<String>) -> Bool {
+        guard confirmedWeekKey == currentWeekKey, !confirmedIds.isEmpty else { return false }
+        return !confirmedIds.isSubset(of: loadedIds)
+    }
 }

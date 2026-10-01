@@ -167,12 +167,21 @@ extension IdealListView {
         let alreadyShownLastWeekReview = UserDefaults.standard.bool(forKey: lastWeekPromptKey)
         let isTestMode = firstSettings.testModeEnabled && dateProvider.isVirtualDateOverrideEnabled
         let weekKey = Self.weeklyKeySuffix(for: now, weekStartDay: weekStartDay)
-        // Records the server check found, if they still point at this week's ideals.
-        let confirmedValidIds = weeklyPlanConfirmedRecordIds.filter { id in
-            items.contains { $0.id == id && !$0.wishlistEnabled && isInCurrentWeek($0) }
+        // Every current-week ideal seen so far (accumulated, so one removed
+        // later cannot hold the flow). The server check already dropped
+        // records whose ideal is gone.
+        weeklyPlanSeenIdealIds.formUnion(items.lazy.filter { !$0.wishlistEnabled && isInCurrentWeek($0) }.map(\.id))
+        // A plan made last week for this week: wait for its ideals to reach
+        // the list before deciding anything — the listener re-runs this.
+        if WeeklyPlanConfirmation.waitsForPlanIdeals(confirmedIds: weeklyPlanConfirmedRecordIds,
+                                                     confirmedWeekKey: weeklyPlanConfirmedWeekKey,
+                                                     currentWeekKey: weekKey,
+                                                     loadedIds: weeklyPlanSeenIdealIds) {
+            AppLogger.debug(AppLogger.ui, "[WeeklyPrompt] waiting for this week's plan to load: \(weeklyPlanConfirmedRecordIds.subtracting(weeklyPlanSeenIdealIds).count) ideal(s) still to come")
+            return
         }
         let planExists = WeeklyPlanConfirmation.planExists(fromListener: hasPlanRecordForCurrentWeek,
-                                                           confirmedIds: confirmedValidIds,
+                                                           confirmedIds: weeklyPlanConfirmedRecordIds,
                                                            confirmedWeekKey: weeklyPlanConfirmedWeekKey,
                                                            currentWeekKey: weekKey)
         let plannedRecordCount = plannedItemRecords.count

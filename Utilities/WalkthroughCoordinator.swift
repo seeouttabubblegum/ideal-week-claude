@@ -134,6 +134,20 @@ final class WalkthroughCoordinator: ObservableObject {
         start(hasStarter ? .firstPlanStarter : .firstPlan, onboardingFinished: true, asked: tipsRequested)
     }
 
+    /// The first-week dump was saved and the user said yes to a tour: the
+    /// whole list tour, nothing cut, whatever the automatic rules say.
+    func startTourAfterDump() {
+        start(.firstLaunchTour, onboardingFinished: true, asked: true)
+    }
+
+    /// "Not Now" after the dump. Recorded like a skip, so the tour does not
+    /// start by itself on a later launch; Help's "Show tips again" still
+    /// brings it back.
+    func declineTourAfterDump() {
+        guard !uid.isEmpty else { return }
+        store.markSeen(.firstLaunchTour, uid: uid)
+    }
+
     /// Called when the ideals list appears. Starts the list tour only after a
     /// replay — its normal start is the end of onboarding.
     func startOnListAppear() {

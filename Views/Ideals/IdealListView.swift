@@ -71,6 +71,9 @@ struct IdealListView: View {
     @State var weeklyPlanConfirmedWeekKey: String? = nil
     @State var weeklyPlanConfirmedRecordIds: Set<String> = []
     @State var isConfirmingWeeklyPlan = false
+    /// Every current-week ideal the list has shown so far. The weekly flow
+    /// holds until the confirmed plan's ideals are all in here.
+    @State var weeklyPlanSeenIdealIds: Set<String> = []
     /// When true, planning sheet opens on Missed Anything? only (no Again?, no Wishlist); used when plan exists and not in planning window.
     @State var showOnlyMissedAnythingStep = false
     /// When true, Next? tab opened sheet to add more to existing next-week plan; do not run plan-table cleanup on save.
@@ -1481,9 +1484,11 @@ struct IdealListView: View {
     func confirmWeeklyPlanThenResync(weekKey: String) {
         guard !isConfirmingWeeklyPlan, let bounds = currentWeekBoundaries else { return }
         isConfirmingWeeklyPlan = true
-        idealRepository.fetchPlanRecordIds(userId: userId, start: bounds.start,
-                                           endExclusive: bounds.nextStart) { result in
+        idealRepository.fetchConfirmedPlanIds(userId: userId, start: bounds.start,
+                                              endExclusive: bounds.nextStart) { result in
             isConfirmingWeeklyPlan = false
+            // A failed read (offline) decides nothing: the flow waits for a
+            // later open rather than guessing.
             guard case .success(let ids) = result else { return }
             weeklyPlanConfirmedWeekKey = weekKey
             weeklyPlanConfirmedRecordIds = ids
@@ -1892,6 +1897,25 @@ struct IdealListView: View {
                             walkthrough.restartTour()
                         } label: {
                             Text("\u{1F9ED} Show First-Run Tips (Test)")
+                                .font(.manrope(14, .bold))
+                                .accentText(.blue)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, pointsFromArtboardPixels(77))   // 77px side gutter
+                                .padding(.bottom, 8)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(LCColor.surface)
+
+                        // The first-week dump on any account (client,
+                        // 2026-10-02) — it normally opens only for a brand-new
+                        // user. Picks go into THIS week; the rest stay on Next?.
+                        Button {
+                            HapticFeedback.impact()
+                            DumpFlowCoordinator.shared.openForTest()
+                        } label: {
+                            Text(DumpFlowCopy.testLink)
                                 .font(.manrope(14, .bold))
                                 .accentText(.blue)
                                 .frame(maxWidth: .infinity, alignment: .leading)

@@ -52,17 +52,40 @@ final class IdealRepository {
     }
 
     /// IDs of the plan records for one week, read once (not from the listener).
-    func fetchPlanRecordIds(userId: String, start: TimeInterval, endExclusive: TimeInterval,
-                            completion: @escaping (Result<Set<String>, Error>) -> Void) {
-        db.collection("users").document(userId)
-            .collection(PlannedIdealRecord.collectionName)
+    /// This week's plan as the server holds it: the plan records whose ideal
+    /// exists in the week (`WeeklyPlanConfirmation.confirmedPlanIds`). Both
+    /// reads go to the server — a fresh install's cache is empty, and an empty
+    /// cache used to read as "no plan". Offline, this fails and the weekly
+    /// flow simply waits for a later open.
+    func fetchConfirmedPlanIds(userId: String, start: TimeInterval, endExclusive: TimeInterval,
+                               completion: @escaping (Result<Set<String>, Error>) -> Void) {
+        let user = db.collection("users").document(userId)
+        user.collection(PlannedIdealRecord.collectionName)
             .whereField("startDate", isGreaterThanOrEqualTo: start)
             .whereField("startDate", isLessThan: endExclusive)
-            .getDocuments { snapshot, error in
-                DispatchQueue.main.async {
-                    if let error { completion(.failure(error)); return }
-                    completion(.success(Set(snapshot?.documents.map(\.documentID) ?? [])))
+            .getDocuments(source: .server) { recordSnapshot, recordError in
+                if let recordError {
+                    DispatchQueue.main.async { completion(.failure(recordError)) }
+                    return
                 }
+                let recordIds = Set(recordSnapshot?.documents.map(\.documentID) ?? [])
+                guard !recordIds.isEmpty else {
+                    DispatchQueue.main.async { completion(.success([])) }
+                    return
+                }
+                user.collection("ideals")
+                    .whereField("startDate", isGreaterThanOrEqualTo: start)
+                    .whereField("startDate", isLessThan: endExclusive)
+                    .getDocuments(source: .server) { idealSnapshot, idealError in
+                        DispatchQueue.main.async {
+                            if let idealError { completion(.failure(idealError)); return }
+                            let idealIds = Set((idealSnapshot?.documents ?? []).compactMap { doc -> String? in
+                                (doc.data()["wishlistEnabled"] as? Bool ?? false) ? nil : doc.documentID
+                            })
+                            completion(.success(WeeklyPlanConfirmation.confirmedPlanIds(recordIds: recordIds,
+                                                                                        idealIds: idealIds)))
+                        }
+                    }
             }
     }
 

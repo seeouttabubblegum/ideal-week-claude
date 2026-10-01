@@ -18,6 +18,8 @@ struct MenuView: View {
     @State private var showHelpOnFirstLaunch = false
     @State private var showOnboardingSettings = false
     @State private var hasCheckedFirstLaunch = false
+    /// The first-week dump, ahead of the tour for a brand-new user.
+    @ObservedObject private var dumpFlow = DumpFlowCoordinator.shared
     
     var body: some View {
         if viewModel.isSignedIn, !viewModel.currentUserId.isEmpty {
@@ -39,14 +41,29 @@ struct MenuView: View {
                         let settingsComing = checkAndShowSettingsIfNeeded()
                         // Preferences leads into the tour when it is coming;
                         // otherwise the tour follows the carousel straight away.
-                        if !settingsComing { startFirstLaunchTour() }
+                        if !settingsComing { startFirstRun() }
                     })
                 }
                 .sheet(isPresented: $showOnboardingSettings) {
                     OnboardingSettingsView(onSave: {
                         showOnboardingSettings = false
-                        startFirstLaunchTour()
+                        startFirstRun()
                     })
+                }
+                .fullScreenCover(isPresented: $dumpFlow.isPresented,
+                                 onDismiss: { dumpFlow.didDismiss() }) {
+                    DumpFlowView()
+                }
+                .alert(DumpFlowCopy.tourTitle, isPresented: $dumpFlow.offersTour) {
+                    Button(DumpFlowCopy.tourLater, role: .cancel) {
+                        WalkthroughCoordinator.shared.declineTourAfterDump()
+                    }
+                    Button(DumpFlowCopy.tourStart) {
+                        WalkthroughCoordinator.shared.setUser(viewModel.currentUserId)
+                        WalkthroughCoordinator.shared.startTourAfterDump()
+                    }
+                } message: {
+                    Text(DumpFlowCopy.tourMessage)
                 }
         }else{
             LoginView()
@@ -73,6 +90,7 @@ struct MenuView: View {
     private func checkAndShowOnboardingIfNeeded() {
         let uid = viewModel.currentUserId
         WalkthroughCoordinator.shared.setUser(uid)
+        DumpFlowCoordinator.shared.setUser(uid)
         guard !uid.isEmpty else {
             AppLogger.debug(AppLogger.ui, "[Onboarding] check skipped: uid empty")
             return
@@ -125,8 +143,9 @@ struct MenuView: View {
             }
         case .none:
             // Nothing to set up. A brand-new account that has already been
-            // through preferences still gets its tour.
-            startFirstLaunchTour()
+            // through preferences still gets its tour (after the dump, if
+            // it is still due).
+            startFirstRun()
         }
     }
 
@@ -143,6 +162,17 @@ struct MenuView: View {
             showOnboardingSettings = true
         }
         return true
+    }
+
+    /// End of onboarding: the first-week dump when it is due (a brand-new
+    /// user with nothing in any week), otherwise the list tour as before.
+    private func startFirstRun() {
+        let uid = viewModel.currentUserId
+        guard !uid.isEmpty else { return }
+        DumpFlowCoordinator.shared.openIfNeeded(
+            uid: uid,
+            automaticAllowed: WalkthroughCoordinator.shared.automaticAllowed,
+            fallback: startFirstLaunchTour)
     }
 
     /// The guided tour of the ideals list. The coordinator only lets it run for
