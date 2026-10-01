@@ -30,4 +30,18 @@ enum CategoryGroup: CaseIterable {
     /// 2026-07-15: F This sits at the CENTRE pie, F Everything Else on the
     /// outer ring.
     static let ringOrder: [CategoryGroup] = [.fEverythingElse, .fMe, .fThis]
+
+    /// The group's name as the book writes it.
+    var title: String {
+        switch self {
+        case .fThis:           return "F This"
+        case .fMe:             return "F Me"
+        case .fEverythingElse: return "F Everything Else"
+        }
+    }
+
+    /// The group a category belongs to.
+    static func group(of category: Category) -> CategoryGroup {
+        allCases.first { $0.categories.contains(category) } ?? .fThis
+    }
 }

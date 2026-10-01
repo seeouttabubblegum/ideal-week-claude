@@ -3,8 +3,9 @@
 //  The Ideal Week
 //
 //  The first-week dump (client, 2026-10-02; book chapter 9). Screens, in
-//  order: the dump → one "Which of these are your …?" per F (Fix → Finance)
-//  → empty Fs, if any → how often → save. Logic lives in `DumpFlowState`;
+//  order: the dump → one "Which of these are your …?" per F (Fix → Finance),
+//  each with how often under every pick and, when nothing is left to pick,
+//  a field to add ideas for that F → Finance saves. Logic lives in `DumpFlowState`;
 //  the save is the weekly prompt's own (`PlanningSheetViewModel.savePlanning`
 //  into the current week), so the duplicate guard, plan records and the
 //  in-flight guard all come with it. No PIN.
@@ -22,11 +23,8 @@ struct DumpFlowView: View {
 
     @State private var state = DumpFlowState()
     @State private var draftTitle = ""
-    /// Fill-screen fields, one per empty F.
-    @State private var fillDrafts: [Category: String] = [:]
-    /// The Fs that were empty when the fill screen opened — kept, so a field
-    /// does not vanish the moment its F gets an ideal.
-    @State private var fillCategories: [Category] = []
+    /// The add field of an F with nothing left to pick, one per F.
+    @State private var addDrafts: [Category: String] = [:]
     @State private var notice: String?
     @State private var hasLoadedNextList = false
     @State private var showLeaveConfirm = false
@@ -89,10 +87,6 @@ struct DumpFlowView: View {
             dumpStage
         case .sort(let category):
             sortStage(category)
-        case .fillEmpty:
-            fillStage
-        case .howOften:
-            howOftenStage
         }
     }
 
@@ -100,18 +94,8 @@ struct DumpFlowView: View {
         VStack(alignment: .leading, spacing: 16) {
             stageTitle(DumpFlowCopy.dumpTitle)
             stageMessage(DumpFlowCopy.dumpMessage)
-            HStack(spacing: 10) {
-                TextField(DumpFlowCopy.dumpPlaceholder, text: $draftTitle)
-                    .font(.manrope(16, .medium))
-                    .foregroundColor(LCColor.ink)
-                    .submitLabel(.done)
-                    .focused($dumpFieldFocused)
-                    .onSubmit { addFromDumpField() }
-                    .padding(.horizontal, 18)
-                    .padding(.vertical, 14)
-                    .neuSunkenCapsule()
-                addButton(enabled: !DumpFlowState.cleanTitle(draftTitle).isEmpty) { addFromDumpField() }
-            }
+            addField(placeholder: DumpFlowCopy.dumpPlaceholder, text: $draftTitle,
+                     focus: $dumpFieldFocused) { addFromDumpField() }
             if let notice {
                 Text(notice)
                     .font(.manrope(14, .bold))
@@ -134,111 +118,71 @@ struct DumpFlowView: View {
         }
     }
 
+    /// One F: heart what belongs here and set how often right under it.
+    /// When every idea already went to an earlier F, say so and offer to add
+    /// ideas for this one (client, 2026-10-02).
     private func sortStage(_ category: Category) -> some View {
         let shown = state.entries(for: category)
+        let nothingLeft = state.nothingLeftToPick(for: category)
         return VStack(alignment: .leading, spacing: 12) {
-            if let progress = DumpFlowCopy.progress(for: state.stage) {
-                Text(progress)
-                    .font(.manrope(13, .heavy))
-                    .textCase(.uppercase)
-                    .tracking(0.6)
-                    .foregroundColor(LCColor.ink.opacity(0.6))
+            // The F's group, as the book names it.
+            if let group = DumpFlowCopy.progress(for: state.stage) {
+                Text(group)
+                    .font(.manrope(15, .heavy))
+                    .accentText(.pink)
             }
             stageTitle(DumpFlowCopy.sortTitle(category))
             stageMessage(category.subheading)
-            stageMessage(DumpFlowCopy.sortHint)
-            if shown.isEmpty {
-                stageMessage(DumpFlowCopy.sortNothingLeft)
+            if nothingLeft {
+                Text(DumpFlowCopy.nothingLeft(category))
+                    .font(.manrope(16, .bold))
+                    .accentText(.pink)
+                    .fixedSize(horizontal: false, vertical: true)
+                addField(placeholder: DumpFlowCopy.addPlaceholder(category),
+                         text: Binding(get: { addDrafts[category] ?? "" },
+                                       set: { addDrafts[category] = $0 })) {
+                    addFromPassField(category)
+                }
+                if let notice {
+                    Text(notice)
+                        .font(.manrope(14, .bold))
+                        .accentText(.pink)
+                }
+            } else {
+                stageMessage(DumpFlowCopy.sortHint)
             }
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(shown) { entry in
                     let picked = state.isPicked(entry.id, for: category)
-                    HStack(spacing: 12) {
-                        Button {
-                            togglePick(entry.id, category)
-                        } label: {
-                            HStack {
-                                entryTitle(entry.title)
-                                Spacer(minLength: 8)
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 12) {
+                            Button {
+                                togglePick(entry.id, category)
+                            } label: {
+                                HStack {
+                                    entryTitle(entry.title)
+                                    Spacer(minLength: 8)
+                                }
+                                .contentShape(Rectangle())
                             }
-                            .contentShape(Rectangle())
+                            .buttonStyle(.plain)
+                            NeuHeartSelectButton(isSelected: picked) { togglePick(entry.id, category) }
                         }
-                        .buttonStyle(.plain)
-                        NeuHeartSelectButton(isSelected: picked) { togglePick(entry.id, category) }
-                    }
-                    .padding(.vertical, 12)
-                    .accessibilityElement(children: .combine)
-                    .accessibilityAddTraits(picked ? .isSelected : [])
-                    NeuFeatheredDivider()
-                }
-            }
-        }
-    }
-
-    private var fillStage: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            stageTitle(DumpFlowCopy.fillTitle)
-            stageMessage(DumpFlowCopy.fillMessage)
-            ForEach(fillCategories, id: \.self) { category in
-                VStack(alignment: .leading, spacing: 10) {
-                    Text(category.rawValue)
-                        .font(.manrope(18, .heavy))
-                        .accentText(.pink)
-                    ForEach(state.pickedEntries.filter { $0.category == category }) { item in
-                        entryTitle(item.entry.title)
-                    }
-                    HStack(spacing: 10) {
-                        TextField(DumpFlowCopy.fillPlaceholder(category), text: Binding(
-                            get: { fillDrafts[category] ?? "" },
-                            set: { fillDrafts[category] = $0 }
-                        ))
-                        .font(.manrope(16, .medium))
-                        .foregroundColor(LCColor.ink)
-                        .submitLabel(.done)
-                        .onSubmit { addFromFillField(category) }
-                        .padding(.horizontal, 18)
-                        .padding(.vertical, 14)
-                        .neuSunkenCapsule()
-                        addButton(enabled: !DumpFlowState.cleanTitle(fillDrafts[category] ?? "").isEmpty) {
-                            addFromFillField(category)
-                        }
-                    }
-                }
-                .padding(.vertical, 6)
-                NeuFeatheredDivider()
-            }
-            if let notice {
-                Text(notice)
-                    .font(.manrope(14, .bold))
-                    .accentText(.pink)
-            }
-        }
-    }
-
-    private var howOftenStage: some View {
-        let picked = state.pickedEntries
-        return VStack(alignment: .leading, spacing: 16) {
-            stageTitle(DumpFlowCopy.howOftenTitle)
-            stageMessage(picked.isEmpty ? DumpFlowCopy.howOftenNothingPicked : DumpFlowCopy.howOftenMessage)
-            ForEach(DumpFlowState.sortOrder.filter { category in picked.contains { $0.category == category } },
-                    id: \.self) { category in
-                VStack(alignment: .leading, spacing: 14) {
-                    Text(category.rawValue)
-                        .font(.manrope(18, .heavy))
-                        .accentText(.pink)
-                    ForEach(picked.filter { $0.category == category }) { item in
-                        VStack(alignment: .leading, spacing: 10) {
-                            entryTitle(item.entry.title)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityAddTraits(picked ? .isSelected : [])
+                        if picked {
+                            Text(DumpFlowCopy.howOftenLabel)
+                                .font(.manrope(14, .heavy))
+                                .foregroundColor(LCColor.ink)
                             HowOftenSliderView(value: Binding(
-                                get: { state.target(for: item.entry.id) },
-                                set: { state.setTarget($0, for: item.entry.id) }
+                                get: { state.target(for: entry.id) },
+                                set: { state.setTarget($0, for: entry.id) }
                             ))
                         }
-                        .padding(.bottom, 6)
                     }
+                    .padding(.vertical, 12)
+                    NeuFeatheredDivider()
                 }
-                .padding(.vertical, 6)
-                NeuFeatheredDivider()
             }
         }
     }
@@ -297,6 +241,30 @@ struct DumpFlowView: View {
             .fixedSize(horizontal: false, vertical: true)
     }
 
+    /// A sunken title field with its Add button — the dump and an F with
+    /// nothing left to pick both use it.
+    private func addField(placeholder: String, text: Binding<String>,
+                          focus: FocusState<Bool>.Binding? = nil,
+                          onAdd: @escaping () -> Void) -> some View {
+        HStack(spacing: 10) {
+            Group {
+                if let focus {
+                    TextField(placeholder, text: text).focused(focus)
+                } else {
+                    TextField(placeholder, text: text)
+                }
+            }
+            .font(.manrope(16, .medium))
+            .foregroundColor(LCColor.ink)
+            .submitLabel(.done)
+            .onSubmit(onAdd)
+            .padding(.horizontal, 18)
+            .padding(.vertical, 14)
+            .neuSunkenCapsule()
+            addButton(enabled: !DumpFlowState.cleanTitle(text.wrappedValue).isEmpty, action: onAdd)
+        }
+    }
+
     private func addButton(enabled: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(DumpFlowCopy.addButton)
@@ -330,9 +298,6 @@ struct DumpFlowView: View {
         HapticFeedback.impact()
         withAnimation(.easeOut(duration: 0.2)) {
             state.goNext()
-            if state.stage == .fillEmpty, fillCategories.isEmpty {
-                fillCategories = state.emptyCategories
-            }
         }
     }
 
@@ -341,8 +306,6 @@ struct DumpFlowView: View {
         HapticFeedback.impact()
         withAnimation(.easeOut(duration: 0.2)) {
             state.goBack()
-            // Returning to a pass can change which Fs are empty.
-            if case .sort = state.stage { fillCategories = [] }
         }
     }
 
@@ -353,9 +316,9 @@ struct DumpFlowView: View {
         }
     }
 
-    private func addFromFillField(_ category: Category) {
-        if addEntry(title: fillDrafts[category] ?? "", pickedFor: category) {
-            fillDrafts[category] = ""
+    private func addFromPassField(_ category: Category) {
+        if addEntry(title: addDrafts[category] ?? "", pickedFor: category) {
+            addDrafts[category] = ""
         }
     }
 

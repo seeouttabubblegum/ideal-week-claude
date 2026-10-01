@@ -22,20 +22,16 @@ enum DumpFlowCopy {
     static func sortTitle(_ category: Category) -> String {
         "Which of these are your \(category.rawValue)?"
     }
-    static let sortHint = "Heart the ones for this week. The rest move on to the next F."
-    static let sortNothingLeft = "Everything has a place already. Tap Continue."
+    static let sortHint = "Heart the ones for this week, then set how often. The rest move on to the next F."
 
-    // Empty Fs
-    static let fillTitle = "All 7 are required"
-    static let fillMessage = "These Fs have nothing yet. Add one small ideal to each, or continue and add it later."
-    static func fillPlaceholder(_ category: Category) -> String {
+    // An F with nothing left to pick
+    static func nothingLeft(_ category: Category) -> String {
+        "You have no ideals left to pick for \(category.rawValue). You can add some for it here."
+    }
+    static func addPlaceholder(_ category: Category) -> String {
         "Something for \(category.rawValue)"
     }
-
-    // How often
-    static let howOftenTitle = "How often this week?"
-    static let howOftenMessage = "One number for each. Pick what you can reach this week; you can always do more."
-    static let howOftenNothingPicked = "Nothing picked for this week. Everything stays on your Next? list."
+    static let howOftenLabel = "How often?"
 
     // Buttons
     static let continueButton = "Continue"
@@ -69,11 +65,11 @@ enum DumpFlowCopy {
     static let tourStart = "Start Tour"
     static let tourLater = "Not Now"
 
-    /// "F 3 of 7" on the sorting screens; nothing elsewhere.
+    /// The F's group under the header ("F This", "F Me", "F Everything
+    /// Else") on the sorting screens; nothing elsewhere.
     static func progress(for stage: DumpFlowStage) -> String? {
-        guard case .sort(let category) = stage,
-              let index = DumpFlowState.sortOrder.firstIndex(of: category) else { return nil }
-        return "F \(index + 1) of \(DumpFlowState.sortOrder.count)"
+        guard case .sort(let category) = stage else { return nil }
+        return CategoryGroup.group(of: category).title
     }
 
     // The temporary test link

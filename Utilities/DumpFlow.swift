@@ -5,9 +5,10 @@
 //  The first-week dump (client, 2026-10-02; book chapter 9). A new user
 //  writes down every idea first — the dump is the Next? list in disguise, so
 //  each idea is saved as a Next? (wishlist) item the moment it is added. The
-//  ideas are then sorted one F at a time in the book's order, empty Fs get a
-//  chance to be filled, and each pick gets its number. Picks move into the
-//  CURRENT week; whatever is left waits on Next? for week two.
+//  ideas are then sorted one F at a time in the book's order; each pick gets
+//  its number on the same screen, and an F with nothing left to pick offers
+//  to add ideas for it (client, 2026-10-02). The last F saves. Picks move
+//  into the CURRENT week; whatever is left waits on Next? for week two.
 //
 //  Pure logic only — `DumpFlowView` draws it, `PlanningSheetViewModel`
 //  saves it.
@@ -42,12 +43,9 @@ enum DumpFlowGate {
 enum DumpFlowStage: Equatable {
     /// Write everything down.
     case dump
-    /// "Which of these are your …?" — one F per screen, book order.
+    /// "Which of these are your …?" — one F per screen, book order, with
+    /// the number for each pick on the same screen. Finance saves.
     case sort(Category)
-    /// Fs nothing was hearted for.
-    case fillEmpty
-    /// One number per pick, then save.
-    case howOften
 }
 
 struct DumpFlowState: Equatable {
@@ -58,6 +56,9 @@ struct DumpFlowState: Equatable {
         /// Written during this run. Only these can be deleted from the dump;
         /// older Next? items are managed on the Next? page as before.
         let isNew: Bool
+        /// Added on an F's own screen when nothing was left to pick there;
+        /// nil for an idea from the dump or the Next? list.
+        var addedFor: Category? = nil
     }
 
     /// Fix first, then the F Mes, then Everything Else (book §8).
@@ -68,8 +69,6 @@ struct DumpFlowState: Equatable {
     private(set) var picks: [String: Category] = [:]
     private var targets: [String: Int] = [:]
     private(set) var stage: DumpFlowStage = .dump
-    /// The fill screen was shown on the way forward, so Back returns to it.
-    private var showedFillEmpty = false
 
     static func cleanTitle(_ title: String) -> String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -81,14 +80,15 @@ struct DumpFlowState: Equatable {
     }
 
     /// Adds an idea. False for a blank title, a title already in the dump, or
-    /// an id already used. `pickedFor` hearts it straight away (the fill
-    /// screen adds ideas for a named F).
+    /// an id already used. `pickedFor` hearts it straight away (an F with
+    /// nothing left to pick adds ideas for itself).
     @discardableResult
     mutating func add(_ entry: Entry, pickedFor category: Category? = nil) -> Bool {
         let title = Self.cleanTitle(entry.title)
         guard !title.isEmpty, !contains(title: title),
               !entries.contains(where: { $0.id == entry.id }) else { return false }
-        entries.append(Entry(id: entry.id, title: title, isNew: entry.isNew))
+        entries.append(Entry(id: entry.id, title: title, isNew: entry.isNew,
+                             addedFor: category ?? entry.addedFor))
         if let category { picks[entry.id] = category }
         return true
     }
@@ -118,9 +118,11 @@ struct DumpFlowState: Equatable {
         }
     }
 
-    var emptyCategories: [Category] {
-        let used = Set(picks.values)
-        return Self.sortOrder.filter { !used.contains($0) }
+    /// Every idea from the dump already went to another F, so this F's
+    /// screen offers to add ideas for it. Ideas added there do not count, so
+    /// the offer stays for a second one.
+    func nothingLeftToPick(for category: Category) -> Bool {
+        !entries.contains { $0.addedFor == nil && (picks[$0.id] == nil || picks[$0.id] == category) }
     }
 
     struct Pick: Equatable, Identifiable {
@@ -154,7 +156,7 @@ struct DumpFlowState: Equatable {
         stage == .dump ? !entries.isEmpty : true
     }
 
-    var isLastStage: Bool { stage == .howOften }
+    var isLastStage: Bool { stage == .sort(Self.sortOrder[Self.sortOrder.count - 1]) }
 
     mutating func goNext() {
         guard canContinue else { return }
@@ -162,16 +164,10 @@ struct DumpFlowState: Equatable {
         case .dump:
             stage = .sort(Self.sortOrder[0])
         case .sort(let category):
+            // The last F stays put: its button saves.
             if let index = Self.sortOrder.firstIndex(of: category), index + 1 < Self.sortOrder.count {
                 stage = .sort(Self.sortOrder[index + 1])
-            } else {
-                showedFillEmpty = !emptyCategories.isEmpty
-                stage = showedFillEmpty ? .fillEmpty : .howOften
             }
-        case .fillEmpty:
-            stage = .howOften
-        case .howOften:
-            break
         }
     }
 
@@ -185,10 +181,6 @@ struct DumpFlowState: Equatable {
             } else {
                 stage = .dump
             }
-        case .fillEmpty:
-            stage = .sort(Self.sortOrder[Self.sortOrder.count - 1])
-        case .howOften:
-            stage = showedFillEmpty ? .fillEmpty : .sort(Self.sortOrder[Self.sortOrder.count - 1])
         }
     }
 

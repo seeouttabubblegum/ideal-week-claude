@@ -60,11 +60,11 @@ enum HelpGuide {
                 Page(id: "first.sort",
                      imageName: "tour_dump_sort",
                      title: "One F at a time",
-                     caption: "Your first week starts with a brain dump: everything that might make you a little happier. Then the app goes through the seven Fs in order, Fix first, and you heart the ideas that belong to each one. An idea you heart is not offered again."),
-                Page(id: "first.howOften",
-                     imageName: "tour_dump_howoften",
-                     title: "How often, then start",
-                     caption: "Each pick gets a number for this week, from 1 up to 6+. Start My Week puts them in your list. Anything you did not pick waits on your Next? list for another week."),
+                     caption: "Your first week starts with a brain dump: everything that might make you a little happier. Then the app goes through the seven Fs in order, Fix first. Heart the ideas that belong to each one and set how often right there. An idea you heart is not offered again."),
+                Page(id: "first.add",
+                     imageName: "tour_dump_add",
+                     title: "Nothing left for an F?",
+                     caption: "If every idea already went to an earlier F, that screen says so and lets you add ideas for it. The last F starts your week; anything you did not pick waits on your Next? list."),
             ]
         ),
         Section(
