@@ -178,7 +178,7 @@ struct SettingsView: View {
                                 .foregroundColor(LCColor.ink)
                         }
                         .padding(32)
-                        .neuRaised(cornerRadius: LCRadius.card)
+                        .overlayCard()
                     }
                 }
             }

@@ -20,6 +20,16 @@ struct AppStoreConfig {
 
     // Product IDs
     static let productIDs = ["idealweekapp", "idealweekappyearly"]
+
+    // Subscription terms (client, 2026-10-07). The price itself is set in App
+    // Store Connect; this is what it is meant to be, so a mismatch in the US
+    // store can be noticed (`SubscriptionPricing`).
+    static let monthlyProductID = "idealweekapp"
+    static let monthlyPriceUSD = Decimal(string: "6.99")!
+    // Free days for everyone before a plan is needed. Apple's introductory
+    // offers cannot be 17 days, so the app counts them itself (`FreeTrial`);
+    // do not also add an Apple free-trial offer, or people get both.
+    static let freeTrialDays = 17
     
     // Apple ID for reference
     static let expectedAppleID = "6756083434"

@@ -76,7 +76,7 @@ struct SubscriptionView: View {
                         Image(systemName: "gift")
                             .font(.system(size: 22, weight: .semibold))
                             .foregroundColor(.white)
-                        Text("2 Weeks Free Trial")
+                        Text(SubscriptionCopy.trialBadge)
                             .font(.hhSamuel(26))
                             .accentText(.yellow)
                     }
@@ -86,7 +86,7 @@ struct SubscriptionView: View {
                     .padding(.horizontal, 28)
                     .padding(.top, 22)
 
-                    Text("Try all features risk-free for 2 weeks, then choose your plan")
+                    Text(SubscriptionCopy.trialStatus(daysLeft: subscriptionManager.freeTrialDaysLeft))
                         .font(.manrope(13.5, .medium))
                         .foregroundColor(LCColor.textSecondary)
                         .multilineTextAlignment(.center)
@@ -170,7 +170,7 @@ struct SubscriptionView: View {
                                     ProgressView()
                                         .progressViewStyle(CircularProgressViewStyle(tint: LCColor.pink))
                                 } else {
-                                    Text("Start Free Trial")
+                                    Text(SubscriptionCopy.subscribeButton)
                                 }
                             }
                         }
@@ -264,6 +264,19 @@ struct SubscriptionOptionCard: View {
     let isSelected: Bool
     let isYearly: Bool
     let monthlyProduct: Product?
+
+    /// "day"/"days", "week"/"weeks"… for an Apple offer's period.
+    static func unitName(_ unit: Product.SubscriptionPeriod.Unit, count: Int) -> String {
+        let name: String
+        switch unit {
+        case .day: name = "day"
+        case .week: name = "week"
+        case .month: name = "month"
+        case .year: name = "year"
+        @unknown default: name = "period"
+        }
+        return count == 1 ? name : name + "s"
+    }
     let onSelect: () -> Void
 
     // Calculate savings for yearly subscription
@@ -296,21 +309,18 @@ struct SubscriptionOptionCard: View {
                         }
                     }
 
-                    // Trial period highlight
-                    if let subscription = product.subscription {
-                        if let introOffer = subscription.introductoryOffer {
-                            if introOffer.period.unit == .day && introOffer.period.value == 14 {
-                                Text("2 weeks free trial")
-                                    .font(.manrope(12.5, .medium))
-                                    .accentText(.pink)
-                            }
-                        }
-
+                    // The free trial is the app's own (17 days, see
+                    // FreeTrial), not an Apple offer: the price below is
+                    // charged from the day of purchase. An Apple offer is
+                    // shown only if one is ever set up in the store.
+                    if let subscription = product.subscription,
+                       let introOffer = subscription.introductoryOffer,
+                       introOffer.paymentMode == .freeTrial {
                         let period = subscription.subscriptionPeriod
                         let periodText = period.unit == .month ? "month" : "year"
-                        Text("Then \(product.displayPrice) / \(periodText) after trial")
+                        Text("Free for \(introOffer.period.value) \(Self.unitName(introOffer.period.unit, count: introOffer.period.value)), then \(product.displayPrice) / \(periodText)")
                             .font(.manrope(12.5, .medium))
-                            .foregroundColor(LCColor.textSecondary)
+                            .accentText(.pink)
                     }
                 }
 

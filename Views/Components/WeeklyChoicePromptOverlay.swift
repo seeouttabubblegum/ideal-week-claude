@@ -15,7 +15,11 @@ struct WeeklyChoicePromptOverlay: View {
     static let pickLabel = "Let Me Pick"
     static let skipLabel = "Skip For Now"
 
+    /// The second week asks to walk through the Fs instead (client,
+    /// 2026-10-08); every other week keeps the usual wording.
+    var title: String = "What Do You\nWanna Do\nThis Week?"
     let subtitle: String
+    var pickLabel: String = Self.pickLabel
     let onPick: () -> Void
     let onSkip: () -> Void
 
@@ -27,7 +31,7 @@ struct WeeklyChoicePromptOverlay: View {
                 .ignoresSafeArea()
 
             VStack(spacing: 0) {
-                Text("What Do You\nWanna Do\nThis Week?")
+                Text(title)
                     .textCase(.uppercase)
                     .font(.hhSamuel(32))
                     .accentText(.pink)
@@ -41,7 +45,7 @@ struct WeeklyChoicePromptOverlay: View {
                     .padding(.top, 12)
 
                 VStack(spacing: 14) {
-                    Button(Self.pickLabel, action: onPick)
+                    Button(pickLabel, action: onPick)
                         .buttonStyle(NeumorphicButtonStyle(
                             tint: LCColor.pink, fill: LCColor.yellow,
                             verticalPadding: 17, font: .manrope(18, .heavy)))

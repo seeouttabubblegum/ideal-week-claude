@@ -10,6 +10,10 @@
 //  into the current week), so the duplicate guard, plan records and the
 //  in-flight guard all come with it. No PIN.
 //
+//  The same screens serve the second week's weekly prompt (client,
+//  2026-10-08): no dump screen, last week's ideals each under its own F, the
+//  Next? list offered on every F, and an add field on every F in both runs.
+//
 
 import SwiftUI
 import SwiftData
@@ -21,9 +25,24 @@ struct DumpFlowView: View {
     @StateObject private var planning = PlanningSheetViewModel()
     @Query private var storedTempSettings: [MainSettings]
 
-    @State private var state = DumpFlowState()
+    private let mode: DumpFlowMode
+    /// Second week: the last active week's ideals not already in this week.
+    private let lastWeekIdeals: [Ideal]
+    /// Second week: told whether anything was saved (the first week reports
+    /// to `DumpFlowCoordinator` instead).
+    private let onFinish: ((Bool) -> Void)?
+
+    @State private var state: DumpFlowState
+
+    init(mode: DumpFlowMode = .firstWeek, lastWeekIdeals: [Ideal] = [],
+         onFinish: ((Bool) -> Void)? = nil) {
+        self.mode = mode
+        self.lastWeekIdeals = lastWeekIdeals
+        self.onFinish = onFinish
+        _state = State(initialValue: DumpFlowState(mode: mode))
+    }
     @State private var draftTitle = ""
-    /// The add field of an F with nothing left to pick, one per F.
+    /// The add field on each F's screen, one per F.
     @State private var addDrafts: [Category: String] = [:]
     @State private var notice: String?
     @State private var hasLoadedNextList = false
@@ -42,7 +61,7 @@ struct DumpFlowView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            NeuSheetHeader(title: DumpFlowCopy.headerTitle, titleSize: 26,
+            NeuSheetHeader(title: DumpFlowCopy.headerTitle(for: mode), titleSize: 26,
                            onClose: { showLeaveConfirm = true })
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
@@ -57,20 +76,20 @@ struct DumpFlowView: View {
             bottomBar
         }
         .background(LCColor.surface.ignoresSafeArea())
-        .onAppear(perform: loadNextList)
-        .alert(DumpFlowCopy.leaveTitle, isPresented: $showLeaveConfirm) {
+        .onAppear(perform: loadEntries)
+        .alert(DumpFlowCopy.leaveTitle(for: mode), isPresented: $showLeaveConfirm) {
             Button(DumpFlowCopy.leaveCancel, role: .cancel) {}
             Button(DumpFlowCopy.leaveConfirm, role: .destructive) {
-                coordinator.finish(saved: false, uid: uid)
+                finish(saved: false)
             }
         } message: {
-            Text(DumpFlowCopy.leaveMessage)
+            Text(DumpFlowCopy.leaveMessage(for: mode))
         }
         .alert(alertTitle, isPresented: $showAlert) {
             Button(DumpFlowCopy.okButton) {
                 if finishAfterAlert {
                     finishAfterAlert = false
-                    coordinator.finish(saved: true, uid: uid)
+                    finish(saved: true)
                 }
             }
         } message: {
@@ -118,9 +137,9 @@ struct DumpFlowView: View {
         }
     }
 
-    /// One F: heart what belongs here and set how often right under it.
-    /// When every idea already went to an earlier F, say so and offer to add
-    /// ideas for this one (client, 2026-10-02).
+    /// One F: heart what belongs here and set how often right under it. The
+    /// add field is always there (client, 2026-10-08); when nothing is left
+    /// to pick, the screen also says so.
     private func sortStage(_ category: Category) -> some View {
         let shown = state.entries(for: category)
         let nothingLeft = state.nothingLeftToPick(for: category)
@@ -138,18 +157,18 @@ struct DumpFlowView: View {
                     .font(.manrope(16, .bold))
                     .accentText(.pink)
                     .fixedSize(horizontal: false, vertical: true)
-                addField(placeholder: DumpFlowCopy.addPlaceholder(category),
-                         text: Binding(get: { addDrafts[category] ?? "" },
-                                       set: { addDrafts[category] = $0 })) {
-                    addFromPassField(category)
-                }
-                if let notice {
-                    Text(notice)
-                        .font(.manrope(14, .bold))
-                        .accentText(.pink)
-                }
             } else {
-                stageMessage(DumpFlowCopy.sortHint)
+                stageMessage(DumpFlowCopy.sortHint(for: mode))
+            }
+            addField(placeholder: DumpFlowCopy.addPlaceholder(category),
+                     text: Binding(get: { addDrafts[category] ?? "" },
+                                   set: { addDrafts[category] = $0 })) {
+                addFromPassField(category)
+            }
+            if let notice {
+                Text(notice)
+                    .font(.manrope(14, .bold))
+                    .accentText(.pink)
             }
             VStack(alignment: .leading, spacing: 0) {
                 ForEach(shown) { entry in
@@ -191,7 +210,7 @@ struct DumpFlowView: View {
 
     private var bottomBar: some View {
         HStack(spacing: 14) {
-            if state.stage != .dump {
+            if canGoBack {
                 NeuBackCircleButton(action: goBack, diameter: 48)
                     .accessibilityLabel(DumpFlowCopy.backButton)
             }
@@ -215,6 +234,14 @@ struct DumpFlowView: View {
         .padding(.top, 10)
         .padding(.bottom, 12)
         .background(LCColor.surface)
+    }
+
+    /// The first screen of the run has nothing behind it.
+    private var canGoBack: Bool {
+        switch mode {
+        case .firstWeek: return state.stage != .dump
+        case .secondWeek: return state.stage != .sort(DumpFlowState.sortOrder[0])
+        }
     }
 
     // MARK: - Small pieces
@@ -378,11 +405,27 @@ struct DumpFlowView: View {
         }
     }
 
+    /// Second week: last week's ideals first, each under its own F. Both
+    /// runs then add the Next? list.
+    private func loadEntries() {
+        guard !hasLoadedNextList, !uid.isEmpty else { return }
+        if mode == .secondWeek {
+            for ideal in lastWeekIdeals {
+                let category = Category(rawValue: ideal.category) ?? .fix
+                state.add(DumpFlowState.Entry(id: ideal.id, title: ideal.title, isNew: false,
+                                              fixedCategory: category),
+                          allowSameTitle: true)
+            }
+        }
+        loadNextList()
+    }
+
     /// Anything already on the Next? list belongs in the dump too (an
     /// interrupted first run, or the test link on an existing account).
     private func loadNextList() {
         guard !hasLoadedNextList, !uid.isEmpty else { return }
         hasLoadedNextList = true
+        let allowSameTitle = mode == .secondWeek
         Firestore.firestore().collection("users").document(uid).collection("ideals")
             .whereField("wishlistEnabled", isEqualTo: true)
             .getDocuments { snapshot, error in
@@ -396,7 +439,8 @@ struct DumpFlowView: View {
                 DispatchQueue.main.async {
                     for doc in docs {
                         guard let title = doc.data()["title"] as? String else { continue }
-                        _ = state.add(DumpFlowState.Entry(id: doc.documentID, title: title, isNew: false))
+                        _ = state.add(DumpFlowState.Entry(id: doc.documentID, title: title, isNew: false),
+                                      allowSameTitle: allowSameTitle)
                     }
                 }
             }
@@ -405,15 +449,22 @@ struct DumpFlowView: View {
     private func save() {
         guard !planning.isSaving else { return }
         let plan = state.savePlan
-        guard !plan.wishlistIds.isEmpty else {
-            // Nothing picked: everything stays on Next?.
-            coordinator.finish(saved: true, uid: uid)
+        guard state.hasPicks else {
+            // Nothing picked: everything stays on Next?. The first week is
+            // still done; the second week's prompt is left as if cancelled.
+            finish(saved: mode == .firstWeek)
             return
         }
+        // Last week's picks are copied into this week; Next? items and new
+        // ones move in place. Both carry their F and number.
+        let lastWeekIds = Set(plan.lastWeekIds)
+        planning.selectedIdealIds = lastWeekIds
+        planning.plannedCategories = plan.categories
+        planning.plannedTargets = plan.targets
         planning.selectedWishlistIdealIds = Set(plan.wishlistIds)
         planning.wishlistCategories = plan.categories
         planning.wishlistTargets = plan.targets
-        planning.savePlanning(selectedIdeals: [],
+        planning.savePlanning(selectedIdeals: lastWeekIdeals.filter { lastWeekIds.contains($0.id) },
                               selectedWishlistIdeals: state.pickedIdeals,
                               weekStartDay: weekStartDay,
                               requireReason: false,
@@ -434,7 +485,14 @@ struct DumpFlowView: View {
                 return
             }
             HapticFeedback.success()
-            coordinator.finish(saved: true, uid: uid)
+            finish(saved: true)
+        }
+    }
+
+    private func finish(saved: Bool) {
+        switch mode {
+        case .firstWeek: coordinator.finish(saved: saved, uid: uid)
+        case .secondWeek: onFinish?(saved)
         }
     }
 

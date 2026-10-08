@@ -54,6 +54,33 @@ enum SubscriptionCopy {
     static let redeemStepSignedIn =
         "Make sure you're signed in to the App Store on this device"
 
+    // MARK: - The free trial (client, 2026-10-07)
+
+    /// The banner on the plans screen.
+    static var trialBadge: String { "\(FreeTrial.days) Days Free" }
+
+    /// The line under the banner. `nil` = the trial has not started yet.
+    static func trialStatus(daysLeft: Int?) -> String {
+        guard let daysLeft else {
+            return "Try everything free for \(FreeTrial.days) days, then choose your plan."
+        }
+        if daysLeft <= 0 {
+            return "Your \(FreeTrial.days)-day free trial has ended. Choose a plan to keep going."
+        }
+        return "You have \(daysLeft) \(daysLeft == 1 ? "day" : "days") left in your free trial."
+    }
+
+    /// The locked screen's line.
+    static func subscribeRequired(trialEnded: Bool) -> String {
+        trialEnded
+            ? "Your \(FreeTrial.days)-day free trial has ended. Subscribe to keep using The Ideal Week."
+            : "Please subscribe to access The Ideal Week."
+    }
+
+    /// The purchase charges straight away — the trial is the app's, not
+    /// Apple's — so the button does not promise one.
+    static let subscribeButton = "Subscribe"
+
     /// Everything a user can be shown, for the copy tests to police.
     static let userFacingMessages: [String] = [
         optionsUnavailable,
@@ -64,5 +91,10 @@ enum SubscriptionCopy {
         offline,
         noSubscriptionYet,
         accountNote,
+        trialStatus(daysLeft: nil),
+        trialStatus(daysLeft: 3),
+        trialStatus(daysLeft: 0),
+        subscribeRequired(trialEnded: true),
+        subscribeRequired(trialEnded: false),
     ]
 }

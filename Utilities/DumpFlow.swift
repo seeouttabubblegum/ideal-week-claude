@@ -40,6 +40,41 @@ enum DumpFlowGate {
     }
 }
 
+/// Which run of the F screens this is.
+enum DumpFlowMode: Equatable {
+    /// A new user's first week: the dump, then the Fs.
+    case firstWeek
+    /// The second active week's weekly prompt (client, 2026-10-08): straight
+    /// to the Fs with last week's ideals, each under its own F, plus the
+    /// Next? list. The third week on uses the usual planning flow.
+    case secondWeek
+}
+
+/// When the weekly prompt walks through the Fs instead of the usual flow.
+enum SecondWeekPick {
+    /// Distinct weeks before this one that hold an ideal. Next? items
+    /// (`startDate` 0), this week and later do not count.
+    static func earlierWeekCount(startDates: [TimeInterval],
+                                 currentWeekStart: TimeInterval,
+                                 weekStartOf: (TimeInterval) -> TimeInterval) -> Int {
+        Set(startDates.filter { $0 > 0 && $0 < currentWeekStart }.map(weekStartOf)).count
+    }
+
+    /// Exactly one earlier week: this is the second.
+    static func isSecondWeek(earlierWeekCount: Int) -> Bool {
+        earlierWeekCount == 1
+    }
+
+    /// The answer on the weekly prompt card.
+    enum CardChoice { case pick, skip }
+
+    /// The walk-through opens only on the user's yes — "Walk Me Through" on
+    /// the second week's card. Nothing else opens it.
+    static func opensWalkThrough(isSecondWeek: Bool, choice: CardChoice) -> Bool {
+        isSecondWeek && choice == .pick
+    }
+}
+
 enum DumpFlowStage: Equatable {
     /// Write everything down.
     case dump
@@ -56,9 +91,19 @@ struct DumpFlowState: Equatable {
         /// Written during this run. Only these can be deleted from the dump;
         /// older Next? items are managed on the Next? page as before.
         let isNew: Bool
-        /// Added on an F's own screen when nothing was left to pick there;
-        /// nil for an idea from the dump or the Next? list.
+        /// Added on an F's own screen; nil for an idea from the dump or the
+        /// Next? list.
         var addedFor: Category? = nil
+        /// Last week's ideal (second week only): it belongs to this F, is
+        /// shown on its screen alone, and is copied into this week if picked.
+        var fixedCategory: Category? = nil
+    }
+
+    let mode: DumpFlowMode
+
+    init(mode: DumpFlowMode = .firstWeek) {
+        self.mode = mode
+        stage = mode == .firstWeek ? .dump : .sort(Self.sortOrder[0])
     }
 
     /// Fix first, then the F Mes, then Everything Else (book §8).
@@ -68,7 +113,7 @@ struct DumpFlowState: Equatable {
     /// Entry id → the F it was hearted for. One F per ideal (book §8).
     private(set) var picks: [String: Category] = [:]
     private var targets: [String: Int] = [:]
-    private(set) var stage: DumpFlowStage = .dump
+    private(set) var stage: DumpFlowStage
 
     static func cleanTitle(_ title: String) -> String {
         title.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -80,15 +125,18 @@ struct DumpFlowState: Equatable {
     }
 
     /// Adds an idea. False for a blank title, a title already in the dump, or
-    /// an id already used. `pickedFor` hearts it straight away (an F with
-    /// nothing left to pick adds ideas for itself).
+    /// an id already used. `pickedFor` hearts it straight away (an idea added
+    /// on an F's own screen). `allowSameTitle` is for loading existing ideals:
+    /// last week and the Next? list may share a title.
     @discardableResult
-    mutating func add(_ entry: Entry, pickedFor category: Category? = nil) -> Bool {
+    mutating func add(_ entry: Entry, pickedFor category: Category? = nil,
+                      allowSameTitle: Bool = false) -> Bool {
         let title = Self.cleanTitle(entry.title)
-        guard !title.isEmpty, !contains(title: title),
+        guard !title.isEmpty, allowSameTitle || !contains(title: title),
               !entries.contains(where: { $0.id == entry.id }) else { return false }
         entries.append(Entry(id: entry.id, title: title, isNew: entry.isNew,
-                             addedFor: category ?? entry.addedFor))
+                             addedFor: category ?? entry.addedFor,
+                             fixedCategory: entry.fixedCategory))
         if let category { picks[entry.id] = category }
         return true
     }
@@ -99,9 +147,15 @@ struct DumpFlowState: Equatable {
         targets[id] = nil
     }
 
-    /// The ideas a pass shows: everything not taken by another F.
+    /// The ideas a pass shows: last week's ideals of this F, and everything
+    /// else not taken by another F.
     func entries(for category: Category) -> [Entry] {
-        entries.filter { picks[$0.id] == nil || picks[$0.id] == category }
+        entries.filter { isOffered($0, for: category) }
+    }
+
+    private func isOffered(_ entry: Entry, for category: Category) -> Bool {
+        if let fixed = entry.fixedCategory { return fixed == category }
+        return picks[entry.id] == nil || picks[entry.id] == category
     }
 
     func isPicked(_ id: String, for category: Category) -> Bool {
@@ -110,7 +164,8 @@ struct DumpFlowState: Equatable {
 
     /// Heart / un-heart in a pass. An idea taken by another F is left alone.
     mutating func togglePick(_ id: String, for category: Category) {
-        guard entries.contains(where: { $0.id == id }) else { return }
+        guard let entry = entries.first(where: { $0.id == id }),
+              entry.fixedCategory == nil || entry.fixedCategory == category else { return }
         switch picks[id] {
         case nil: picks[id] = category
         case category?: picks[id] = nil
@@ -118,11 +173,11 @@ struct DumpFlowState: Equatable {
         }
     }
 
-    /// Every idea from the dump already went to another F, so this F's
-    /// screen offers to add ideas for it. Ideas added there do not count, so
-    /// the offer stays for a second one.
+    /// Nothing from the dump, last week or the Next? list is left for this F,
+    /// so its screen says so (the add field is there either way). Ideas added
+    /// on the screen do not count.
     func nothingLeftToPick(for category: Category) -> Bool {
-        !entries.contains { $0.addedFor == nil && (picks[$0.id] == nil || picks[$0.id] == category) }
+        !entries.contains { $0.addedFor == nil && isOffered($0, for: category) }
     }
 
     struct Pick: Equatable, Identifiable {
@@ -152,6 +207,8 @@ struct DumpFlowState: Equatable {
         targets[id] = min(max(value, 1), HowOftenSlider.stopCount)
     }
 
+    var hasPicks: Bool { !picks.isEmpty }
+
     var canContinue: Bool {
         stage == .dump ? !entries.isEmpty : true
     }
@@ -178,23 +235,26 @@ struct DumpFlowState: Equatable {
         case .sort(let category):
             if let index = Self.sortOrder.firstIndex(of: category), index > 0 {
                 stage = .sort(Self.sortOrder[index - 1])
-            } else {
+            } else if mode == .firstWeek {
                 stage = .dump
             }
         }
     }
 
-    /// What the save hands to `PlanningSheetViewModel.savePlanning`: the
-    /// picked Next? items, each with its F and its number.
+    /// What the save hands to `PlanningSheetViewModel.savePlanning`: last
+    /// week's picks (copied) and the picked Next? items (moved), each with
+    /// its F and its number.
     struct SavePlan: Equatable {
+        let lastWeekIds: [String]
         let wishlistIds: [String]
         let categories: [String: String]
         let targets: [String: String]
     }
 
-    /// The picks as the Next? items `savePlanning` moves into the week.
+    /// The picked Next? items `savePlanning` moves into the week (last
+    /// week's picks are copied from their own ideals instead).
     var pickedIdeals: [Ideal] {
-        pickedEntries.map { pick in
+        pickedEntries.filter { $0.entry.fixedCategory == nil }.map { pick in
             var ideal = Ideal(id: pick.entry.id, title: pick.entry.title)
             ideal.category = pick.category.rawValue
             ideal.wishlistEnabled = true
@@ -210,7 +270,8 @@ struct DumpFlowState: Equatable {
             categories[pick.id] = pick.category.rawValue
             targetLabels[pick.id] = HowOftenSlider.label(for: target(for: pick.id))
         }
-        return SavePlan(wishlistIds: picked.map(\.entry.id),
+        return SavePlan(lastWeekIds: picked.filter { $0.entry.fixedCategory != nil }.map(\.entry.id),
+                        wishlistIds: picked.filter { $0.entry.fixedCategory == nil }.map(\.entry.id),
                         categories: categories,
                         targets: targetLabels)
     }

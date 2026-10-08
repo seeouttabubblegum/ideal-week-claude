@@ -96,6 +96,7 @@ extension IdealListView {
     /// True when any weekly-flow modal/alert is currently on-screen.
     var isWeeklyFlowPresentationActive: Bool {
         showPlanningSheet || showLastWeekReviewPrompt || showLastWeekReviewView || showWeeklyChoicePrompt
+            || showSecondWeekPick
     }
 
     /// True when ANY UIKit-presented modal (sheet, fullScreenCover, alert — from
@@ -365,6 +366,30 @@ extension IdealListView {
         hasPresentedWeeklyPlanningPromptThisSession = true
         incrementWeeklyPromptOpenCount()
         showWeeklyChoicePrompt = true
+    }
+
+    /// The account's second active week (exactly one earlier week with
+    /// ideals): the weekly prompt walks through the Fs instead of planning
+    /// (client, 2026-10-08). The third week on is unchanged.
+    var isSecondWeekForWeeklyPrompt: Bool {
+        if weeklyPromptSecondWeekTest { return true }
+        guard let weekStartDay = storedTempSettings.first?.week_start_day else { return false }
+        let currentStart = WeekdayUtility.weekStart(for: dateProvider.now(), weekStartDay: weekStartDay).timeIntervalSince1970
+        let count = SecondWeekPick.earlierWeekCount(
+            startDates: items.filter { !$0.wishlistEnabled }.map(\.startDate),
+            currentWeekStart: currentStart,
+            weekStartOf: { WeekdayUtility.weekStart(for: Date(timeIntervalSince1970: $0),
+                                                    weekStartDay: weekStartDay).timeIntervalSince1970 })
+        return SecondWeekPick.isSecondWeek(earlierWeekCount: count)
+    }
+
+    /// "Walk Me Through" on the second week's card. Counted like Pick: the
+    /// showing was spent when the card appeared.
+    func handleSecondWeekPick() {
+        AppLogger.debug(AppLogger.ui, "[WeeklyPrompt] CHOICE: second-week walk-through (openCount=\(currentWeekWeeklyPromptOpenCount))")
+        hasPresentedWeeklyPlanningPromptThisSession = true
+        secondWeekPickSaved = false
+        showSecondWeekPick = true
     }
 
     /// Handle "Pick" from the weekly choice alert — show the full planning sheet flow.

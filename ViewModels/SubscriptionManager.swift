@@ -15,7 +15,11 @@ class SubscriptionManager: ObservableObject {
     @Published var purchasedProductIDs: Set<String> = []
     @Published var isLoading = false
     @Published var errorMessage: String?
-    
+    /// When this user's free trial started (`FreeTrial`); nil until read.
+    @Published private(set) var freeTrialStart: Date?
+    /// The user the trial was read for, so it is read once per account.
+    private var freeTrialUserId: String?
+
     private let productIDs = AppStoreConfig.productIDs
     private let expectedAppleID = AppStoreConfig.expectedAppleID
     private let isWorkflowEnabled = AppStoreConfig.isSubscriptionWorkflowEnabled
@@ -154,6 +158,13 @@ class SubscriptionManager: ObservableObject {
                     }
                     return product1.id < product2.id
                 }
+                // The price lives in App Store Connect; say so when the US
+                // store disagrees with the agreed monthly price.
+                if let monthly = products.first(where: { $0.id == AppStoreConfig.monthlyProductID }),
+                   SubscriptionPricing.isMonthlyPriceWrong(price: monthly.price,
+                                                           currencyCode: monthly.priceFormatStyle.currencyCode) {
+                    logError("Monthly price in the store is \(monthly.displayPrice), expected $\(AppStoreConfig.monthlyPriceUSD)")
+                }
                 logDebug("===========================================")
                 logDebug("SUCCESSFULLY LOADED PRODUCTS:")
                 for product in products {
@@ -286,6 +297,34 @@ class SubscriptionManager: ObservableObject {
     var hasActiveSubscription: Bool {
         guard isWorkflowEnabled else { return true }
         return !purchasedProductIDs.isEmpty
+    }
+
+    /// May use the app: a paid plan, or the free trial still running. With
+    /// the subscription hidden, everyone.
+    var hasAccess: Bool {
+        guard isWorkflowEnabled else { return true }
+        return !purchasedProductIDs.isEmpty || FreeTrial.isActive(start: freeTrialStart, now: Date())
+    }
+
+    /// Days left in the free trial; nil while hidden or not yet known.
+    var freeTrialDaysLeft: Int? {
+        guard isWorkflowEnabled, let freeTrialStart else { return nil }
+        return FreeTrial.daysLeft(start: freeTrialStart, now: Date())
+    }
+
+    /// Reads when this user's free trial started, recording it (once, as a
+    /// server time) if it never has. Does nothing while the subscription is
+    /// hidden. A failed read leaves the start unknown, which never locks
+    /// anyone out (`FreeTrial.isActive`).
+    func loadFreeTrial(userId: String) {
+        guard isWorkflowEnabled, !userId.isEmpty, freeTrialUserId != userId else { return }
+        freeTrialUserId = userId
+        freeTrialStart = nil
+        FreeTrialRepository.loadStart(userId: userId) { [weak self] start, error in
+            guard let self, self.freeTrialUserId == userId else { return }
+            if let error { self.logError("Free trial start: \(error.localizedDescription)") }
+            self.freeTrialStart = start
+        }
     }
     
     func restorePurchases() async {

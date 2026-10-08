@@ -509,6 +509,14 @@ extension View {
         self.frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
     }
 
+    /// A card shown over a dimmed screen (loading, saving, prompts): flat,
+    /// no shadow. Over the dim layer the neumorphic pair reads as a white
+    /// glow around the card (client, 2026-09-29 and 2026-10-08).
+    func overlayCard(cornerRadius: CGFloat = LCRadius.card) -> some View {
+        background(RoundedRectangle(cornerRadius: cornerRadius, style: .continuous)
+            .fill(LCColor.surface))
+    }
+
     /// Card / grouped-list container: raised 18pt rounded rect on the surface.
     func neuCard(cornerRadius: CGFloat = LCRadius.card,
                  padding: CGFloat = LCMetrics.cardPadding) -> some View {

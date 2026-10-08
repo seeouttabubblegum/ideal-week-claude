@@ -11,6 +11,8 @@ import SwiftUI
 struct SubscriptionRequiredView: View {
     @Binding var showSubscriptionView: Bool
     @Binding var showOfferCodeView: Bool
+    /// The 17-day free trial has run out (it says so instead of a bare ask).
+    var trialEnded: Bool = false
 
     var body: some View {
         VStack(spacing: 24) {
@@ -23,7 +25,7 @@ struct SubscriptionRequiredView: View {
                 .accentText(.pink)
                 .multilineTextAlignment(.center)
 
-            Text("Please subscribe to access The Ideal Week")
+            Text(SubscriptionCopy.subscribeRequired(trialEnded: trialEnded))
                 .font(.manrope(15, .medium))
                 .foregroundColor(LCColor.textSecondary)
                 .multilineTextAlignment(.center)

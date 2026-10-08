@@ -127,6 +127,12 @@ struct IdealListView: View {
     @State var showLastWeekReviewPrompt = false
     @State var showLastWeekReviewView = false
     @State var showWeeklyChoicePrompt = false
+    /// The second week's walk through the Fs (`DumpFlowView`, second-week
+    /// mode), opened from the weekly choice card instead of planning.
+    @State var showSecondWeekPick = false
+    @State var secondWeekPickSaved = false
+    /// TEMPORARY: the test link asks for the second-week card on any account.
+    @State var weeklyPromptSecondWeekTest = false
     @State private var itemOffsets: [String: CGFloat] = [:]
     @State private var itemWidths: [String: CGFloat] = [:]
     @State private var hapticTriggered: [String: Bool] = [:]
@@ -222,7 +228,8 @@ struct IdealListView: View {
     @State private var seededReminderUid: String? = nil
 
     private var hasSubscriptionAccess: Bool {
-        subscriptionManager.isLoading || subscriptionManager.hasActiveSubscription
+        // A paid plan or the 17-day free trial (does nothing while hidden).
+        subscriptionManager.isLoading || subscriptionManager.hasAccess
     }
     
     var accentColor: Color {
@@ -1795,6 +1802,8 @@ struct IdealListView: View {
                     )
                 }
                 viewModel.fetchUser()
+                // The free trial's start (no-op while the subscription is hidden).
+                subscriptionManager.loadFreeTrial(userId: userId)
                 syncWeeklyFlowIfReady()
                 // Also try here, not just from the items listener: when the list
                 // is re-entered with a warm cache, `items` may never change again
@@ -1908,6 +1917,28 @@ struct IdealListView: View {
                         .listRowSeparator(.hidden)
                         .listRowBackground(LCColor.surface)
 
+                        // The second week's card and walk-through on any
+                        // account (client, 2026-10-08). Same rules as the
+                        // weekly-prompt link, so not on Jay's account.
+                        if TestLinks.showsWeeklyPromptLink(email: Auth.auth().currentUser?.email) {
+                        Button {
+                            HapticFeedback.impact()
+                            weeklyPromptSecondWeekTest = true
+                            triggerWeeklyPromptForTesting()
+                        } label: {
+                            Text(DumpFlowCopy.secondWeekTestLink)
+                                .font(.manrope(14, .bold))
+                                .accentText(.blue)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, pointsFromArtboardPixels(77))   // 77px side gutter
+                                .padding(.bottom, 8)
+                        }
+                        .buttonStyle(.plain)
+                        .listRowInsets(EdgeInsets())
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(LCColor.surface)
+                        }
+
                         // The first-week dump on any account (client,
                         // 2026-10-02) — it normally opens only for a brand-new
                         // user. Picks go into THIS week; the rest stay on Next?.
@@ -1966,7 +1997,8 @@ struct IdealListView: View {
     /// AnyView property so `mainContent`'s branch type is unchanged.
     private var subscriptionRequiredView: AnyView {
         AnyView(SubscriptionRequiredView(showSubscriptionView: $showSubscriptionView,
-                                        showOfferCodeView: $showOfferCodeView))
+                                        showOfferCodeView: $showOfferCodeView,
+                                        trialEnded: subscriptionManager.freeTrialDaysLeft == 0))
     }
     
     var body: some View {
@@ -2069,7 +2101,7 @@ struct IdealListView: View {
                         // open id moves underneath it, re-stamp: the offer belongs to
                         // this visit, and the cover's onDismiss re-stamp can land
                         // after the list's own onAppear evaluation on Cancel.
-                        if showPlanningSheet && isWeeklyPromptPlanningFlow {
+                        if (showPlanningSheet && isWeeklyPromptPlanningFlow) || showSecondWeekPick {
                             hasPresentedWeeklyPlanningPromptThisSession = true
                         }
                         // Only the VISIBLE instance evaluates (a hidden NavigationStack
@@ -2116,23 +2148,36 @@ struct IdealListView: View {
                                 .padding(.horizontal, 24)
                         }
                         .padding(28)
-                        .neuRaised(cornerRadius: LCRadius.card)
+                        .overlayCard()
                         .padding(.horizontal, 40)
                     }
                     // 7n Weekly Choice — styled modal over the dimmed list. Wires
                     // the SAME two actions the old .alert used; decision logic
                     // (open-count copy variant included) is untouched.
                     if showWeeklyChoicePrompt {
+                        // The second week walks through the Fs (client,
+                        // 2026-10-08); every other week is unchanged.
+                        let secondWeek = isSecondWeekForWeeklyPrompt
                         WeeklyChoicePromptOverlay(
-                            subtitle: currentWeekWeeklyPromptOpenCount >= 2
-                                ? "Forgot to add plans for this week? You can add now if you want."
-                                : "Plan out your ideals for the week ahead, or skip straight to your list.",
+                            title: secondWeek ? DumpFlowCopy.secondWeekCardTitle : "What Do You\nWanna Do\nThis Week?",
+                            subtitle: secondWeek
+                                ? DumpFlowCopy.secondWeekCardMessage
+                                : currentWeekWeeklyPromptOpenCount >= 2
+                                    ? "Forgot to add plans for this week? You can add now if you want."
+                                    : "Plan out your ideals for the week ahead, or skip straight to your list.",
+                            pickLabel: secondWeek ? DumpFlowCopy.secondWeekPickLabel : WeeklyChoicePromptOverlay.pickLabel,
                             onPick: {
                                 showWeeklyChoicePrompt = false
-                                handleWeeklyChoicePick()
+                                // Only this yes opens the walk-through.
+                                if SecondWeekPick.opensWalkThrough(isSecondWeek: secondWeek, choice: .pick) {
+                                    handleSecondWeekPick()
+                                } else {
+                                    handleWeeklyChoicePick()
+                                }
                             },
                             onSkip: {
                                 showWeeklyChoicePrompt = false
+                                weeklyPromptSecondWeekTest = false
                                 handleWeeklyChoiceSkip()
                             }
                         )
@@ -2258,6 +2303,25 @@ struct IdealListView: View {
             // above, and no swipe-down / tap-outside dismissal — so the planning
             // flow can only be left via the explicit Cancel or Save buttons.
             // This prevents accidentally losing an in-progress plan.
+            // The second week's walk through the Fs. Same bookkeeping as the
+            // weekly prompt's planning sheet: the showing is spent, and a
+            // save closes the week's flow.
+            .fullScreenCover(isPresented: $showSecondWeekPick, onDismiss: {
+                hasPresentedWeeklyPlanningPromptThisSession = true
+                if secondWeekPickSaved {
+                    markWeeklyFlowComplete()
+                }
+                secondWeekPickSaved = false
+                weeklyPromptSecondWeekTest = false
+                planningSheetDismissedAt = Date()
+            }) {
+                DumpFlowView(mode: .secondWeek,
+                             lastWeekIdeals: previousWeekIdealsForWeeklyPrompt,
+                             onFinish: { saved in
+                                 secondWeekPickSaved = saved
+                                 showSecondWeekPick = false
+                             })
+            }
             .fullScreenCover(isPresented: $showPlanningSheet, onDismiss: {
                 let dismissedWeeklyPrompt = isWeeklyPromptPlanningFlow
                 if dismissedWeeklyPrompt {

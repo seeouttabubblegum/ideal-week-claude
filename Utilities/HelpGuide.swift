@@ -64,7 +64,7 @@ enum HelpGuide {
                 Page(id: "first.add",
                      imageName: "tour_dump_add",
                      title: "Nothing left for an F?",
-                     caption: "If every idea already went to an earlier F, that screen says so and lets you add ideas for it. The last F starts your week; anything you did not pick waits on your Next? list."),
+                     caption: "Every F has a field to add something new, and if every idea already went to an earlier F, the screen says so. The last F starts your week; anything you did not pick waits on your Next? list. In your second week, the app offers the same walk-through with last week's ideals, if you want it."),
             ]
         ),
         Section(

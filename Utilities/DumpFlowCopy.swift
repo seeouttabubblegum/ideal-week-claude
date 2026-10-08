@@ -11,6 +11,10 @@ import Foundation
 enum DumpFlowCopy {
     static let headerTitle = "Your First Week"
 
+    static func headerTitle(for mode: DumpFlowMode) -> String {
+        mode == .firstWeek ? headerTitle : "Your Week"
+    }
+
     // The dump
     static let dumpTitle = "Brain Dump"
     static let dumpMessage = "Write down everything that might make you a little happier this week. Big, small, the dumb ones too. Whatever doesn't make this week waits on your Next? list."
@@ -23,6 +27,10 @@ enum DumpFlowCopy {
         "Which of these are your \(category.rawValue)?"
     }
     static let sortHint = "Heart the ones for this week, then set how often. The rest move on to the next F."
+
+    static func sortHint(for mode: DumpFlowMode) -> String {
+        mode == .firstWeek ? sortHint : "Heart the ones for this week, then set how often."
+    }
 
     // An F with nothing left to pick
     static func nothingLeft(_ category: Category) -> String {
@@ -43,6 +51,18 @@ enum DumpFlowCopy {
     static let leaveMessage = "Your ideas stay on the Next? list."
     static let leaveConfirm = "Leave"
     static let leaveCancel = "Stay"
+
+    static func leaveTitle(for mode: DumpFlowMode) -> String {
+        mode == .firstWeek ? leaveTitle : "Leave without saving?"
+    }
+    static func leaveMessage(for mode: DumpFlowMode) -> String {
+        mode == .firstWeek ? leaveMessage : "Nothing is added to this week. Anything new you typed stays on your Next? list."
+    }
+
+    // The second week's weekly prompt card (client, 2026-10-08)
+    static let secondWeekCardTitle = "Walk Through\nYour Week?"
+    static let secondWeekCardMessage = "Want to add something new, or change last week's ideals?"
+    static let secondWeekPickLabel = "Walk Me Through"
 
     // Saving
     static let saveFailedTitle = "Couldn't save your week"
@@ -74,4 +94,5 @@ enum DumpFlowCopy {
 
     // The temporary test link
     static let testLink = "\u{1F5D2}\u{FE0F} Open First-Week Dump (Test)"
+    static let secondWeekTestLink = "\u{1F4C5} Open Second-Week Prompt (Test)"
 }
